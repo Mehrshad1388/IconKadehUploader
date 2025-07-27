@@ -19,7 +19,7 @@ GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', 'AIzaSyAhkzNcizNTitp32v8juh3iW
 genai.configure(api_key=GEMINI_API_KEY)
 
 # --- راه‌اندازی اپلیکیشن Flask ---
-app = Flask(__name__, static_folder='web', static_url_path='')
+app = Flask(__name__, template_folder='web', static_folder='web', static_url_path='')
 
 def clean_svg_content(svg_string):
     modified_content = re.sub(r'\s?width="[^"]*"', '', svg_string, flags=re.IGNORECASE)
