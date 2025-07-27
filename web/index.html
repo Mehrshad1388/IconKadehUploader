@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>آپلودر هوشمند آیکون کده</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="text/javascript" src="/eel.js"></script>
+    <!-- این خط را به سایر تگ‌های link در بخش head اضافه کنید -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- این اسکریپت را قبل از تگ پایانی </head> قرار دهید -->
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js').then(registration => {
+                console.log('SW registered: ', registration);
+            }).catch(registrationError => {
+                console.log('SW registration failed: ', registrationError);
+            });
+        });
+    }
+    </script>
+
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 آپلودر هوشمند آیکون کده</h1>
+        </div>
+        <form id="upload-form">
+            <div class="form-section">
+                <h2>۱. انتخاب فایل و نام انگلیسی</h2>
+                 <div class="form-group file-area">
+                    <input type="file" id="ik_svg_file" class="required" accept=".svg">
+                    <div class="file-dummy">
+                        <span class="file-text">یک فایل SVG را انتخاب کنید یا اینجا بکشید</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="ik_icon_name">نام انگلیسی (راهنمای هوش مصنوعی)</label>
+                    <input type="text" id="ik_icon_name" class="ltr required" placeholder="مثال: search, home, trash">
+                </div>
+            </div>
+
+            <div class="ai-section">
+                <button type="button" class="ai-btn" id="generate-ai-btn" disabled>
+                    <span class="ai-btn-text">تولید با هوش مصنوعی</span>
+                    <span class="magic-icon">🪄</span>
+                </button>
+            </div>
+
+            <div class="form-section">
+                <h2>۲. تکمیل اطلاعات</h2>
+                <div class="form-group">
+                    <label for="ik_title">عنوان کامل آیکون</label>
+                    <input type="text" id="ik_title" class="required" placeholder="توسط هوش مصنوعی تولید می‌شود...">
+                </div>
+                <div class="form-group">
+                    <label for="ik_description">توضیحات آیکون</label>
+                    <textarea id="ik_description" class="required" rows="5" placeholder="توسط هوش مصنوعی تولید می‌شود..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="ik_category">دسته‌بندی</label>
+                    <select id="ik_category" class="required">
+                        <option value="">در حال بارگذاری...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="ik_tags">برچسب‌ها (جدا با کاما)</label>
+                    <input type="text" id="ik_tags" placeholder="خانه, سایت, رابط کاربری">
+                </div>
+                <div class="form-group">
+                    <label for="ik_license">لایسنس</label>
+                    <select id="ik_license">
+                        <option>Apache License 2.0</option>
+                        <option>MIT License</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="status-bar" id="status-bar">برای شروع، یک فایل SVG و نام انگلیسی آن را وارد کنید.</div>
+
+            <button type="submit" class="submit-btn" id="submit-btn" disabled>
+                <span class="btn-text">✨ ساخت و انتشار آیکون</span>
+                <div class="spinner" style="display: none;"></div>
+            </button>
+        </form>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
