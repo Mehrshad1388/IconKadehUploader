@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const titleInput = document.getElementById('ik_title');
     const descriptionInput = document.getElementById('ik_description');
 
-    // --- بارگذاری اولیه دسته‌بندی‌ها با fetch ---
+    // --- بارگذاری اولیه دسته‌بندی‌ها با fetch (بدون تغییر) ---
     try {
         const response = await fetch('/api/get_categories');
         if (!response.ok) throw new Error('Network response was not ok');
@@ -62,6 +62,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const file = fileInput.files[0];
         if (!file) return;
 
+        // <<< مرحله ۱: خواندن مقدار مدل انتخاب شده از فیلد کشویی
+        const selectedModel = document.getElementById('ik_ai_model').value;
+
         setAiButtonLoading(true);
         updateStatus('در حال ارسال درخواست به هوش مصنوعی...', 'info');
 
@@ -75,9 +78,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const response = await fetch('/api/generate_ai_content', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    // <<< مرحله ۲: ارسال نام مدل به همراه سایر اطلاعات
                     body: JSON.stringify({
                         file_info: fileInfo,
-                        english_name: englishNameInput.value.trim()
+                        english_name: englishNameInput.value.trim(),
+                        model_name: selectedModel 
                     })
                 });
 
@@ -88,7 +93,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     descriptionInput.value = result.data.description;
                     tagsInput.value = result.data.tags;
                     updateStatus('محتوا با موفقیت تولید شد.', 'success');
-                    // ورودی‌ها را برای بررسی دکمه ارسال، به‌روزرسانی می‌کنیم
                     titleInput.dispatchEvent(new Event('input'));
                     descriptionInput.dispatchEvent(new Event('input'));
                 } else {
@@ -106,7 +110,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
     });
 
-    // --- منطق دکمه انتشار نهایی با FormData و fetch ---
+    // --- منطق دکمه انتشار نهایی (بدون تغییر) ---
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
         setSubmitButtonLoading(true);
@@ -124,7 +128,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const response = await fetch('/api/upload_icon', {
                 method: 'POST',
-                body: formData // FormData خودش هدر مناسب را تنظیم می‌کند
+                body: formData
             });
             const result = await response.json();
             updateStatus(result.message, result.status);
