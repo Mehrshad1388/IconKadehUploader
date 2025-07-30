@@ -30,6 +30,8 @@ def clean_svg_content(svg_string):
     # اضافه کردن fill="currentColor" در صورتی که fill وجود نداشته باشد
     # این کار برای اطمینان از اینکه SVG همیشه یک fill دارد انجام می‌شود
     if 'fill=' not in modified_content.lower():
+        # این regex تگ <path> را پیدا کرده و fill="currentColor" را به آن اضافه می‌کند.
+        # این کار را برای هر تگ <path> انجام می‌دهد.
         modified_content = re.sub(r'(<path[^>]*?)(\s?/>|>)', r'\1 fill="currentColor"\2', modified_content, flags=re.IGNORECASE)
 
     return modified_content
@@ -115,7 +117,6 @@ def generate_ai_content_api():
         print(f"ERROR in Gemini generation: {e}")
         return jsonify({'status': 'error', 'message': f"یک خطای ناشناخته در ارتباط با هوش مصنوعی رخ داد: {e}"}), 500
 
-# بقیه کد بدون تغییر باقی می‌ماند
 @app.route('/api/upload_icon', methods=['POST'])
 def upload_icon_api():
     try:
@@ -127,15 +128,34 @@ def upload_icon_api():
         cleaned_bytes = cleaned_svg_string.encode('utf-8')
 
         files = {'ik_svg_file': (file.filename, cleaned_bytes, 'image/svg+xml')}
+        
+        # ارسال درخواست به API وردپرس
         response = requests.post(API_ENDPOINT, data=data, files=files, auth=(WP_USERNAME, WP_APP_PASSWORD))
-        response.raise_for_status()
+        
+        # اگر وضعیت پاسخ 4xx یا 5xx باشد، یک HTTPError ایجاد می‌کند.
+        # این به ما اجازه می‌دهد خطای دقیق‌تر را از سرور وردپرس بگیریم.
+        response.raise_for_status() 
         
         result = response.json()
         if result.get('success'):
             return jsonify({'status': 'success', 'message': f"آیکون با موفقیت منتشر شد! لینک: {result.get('post_link')}"})
         else:
-            return jsonify({'status': 'error', 'message': f"خطا از سرور: {result.get('message')}"})
+            # در صورتی که پاسخ 200 باشد اما success: false باشد
+            error_message = result.get('message', 'خطای نامشخص از سرور وردپرس.')
+            return jsonify({'status': 'error', 'message': f"خطا از سرور: {error_message}"})
+            
+    except requests.exceptions.HTTPError as http_err:
+        # این بخش خطاهای HTTP (مثل 400 Bad Request) را مدیریت می‌کند.
+        try:
+            # تلاش برای خواندن پیام خطا از پاسخ JSON سرور وردپرس
+            error_details = http_err.response.json()
+            wp_error_message = error_details.get('message', 'خطای HTTP ناشناخته از وردپرس.')
+            return jsonify({'status': 'error', 'message': f"خطای HTTP از سرور وردپرس ({http_err.response.status_code}): {wp_error_message}"}), http_err.response.status_code
+        except json.JSONDecodeError:
+            # اگر پاسخ سرور JSON نباشد، متن خام پاسخ را برمی‌گرداند.
+            return jsonify({'status': 'error', 'message': f"خطای HTTP از سرور وردپرس ({http_err.response.status_code}): {http_err.response.text}"}), http_err.response.status_code
     except Exception as e:
+        # سایر خطاهای پایتون
         return jsonify({'status': 'error', 'message': f"یک خطای ناشناخته در پایتون رخ داد: {e}"}), 500
 
 if __name__ == '__main__':
