@@ -20,9 +20,18 @@ genai.configure(api_key=GEMINI_API_KEY)
 app = Flask(__name__, template_folder='web', static_folder='web', static_url_path='')
 
 def clean_svg_content(svg_string):
+    # حذف ویژگی‌های width و height
     modified_content = re.sub(r'\s?width="[^"]*"', '', svg_string, flags=re.IGNORECASE)
     modified_content = re.sub(r'\s?height="[^"]*"', '', modified_content, flags=re.IGNORECASE)
+    
+    # جایگزینی هر fill موجود با currentColor
     modified_content = re.sub(r'fill="[^"]*"', 'fill="currentColor"', modified_content, flags=re.IGNORECASE)
+    
+    # اضافه کردن fill="currentColor" در صورتی که fill وجود نداشته باشد
+    # این کار برای اطمینان از اینکه SVG همیشه یک fill دارد انجام می‌شود
+    if 'fill=' not in modified_content.lower():
+        modified_content = re.sub(r'(<path[^>]*?)(\s?/>|>)', r'\1 fill="currentColor"\2', modified_content, flags=re.IGNORECASE)
+
     return modified_content
 
 @app.route('/')
@@ -87,9 +96,9 @@ def generate_ai_content_api():
 
         **مثال خروجی برای آیکون جستجو:**
         {{
-          "title": "آیکون ذره بین جستجو / Search Icon",
-          "description": "آیکون ذره بین جستجو, نمادی واضح و کاربردی برای قابلیت جستجو و کاوش در انواع پلتفرم‌های دیجیتال است. این آیکون که با الهام از سبک طراحی متریال (Material Design) ساخته شده، به کاربران کمک می‌کند تا به راحتی بخش جستجوی سایت یا اپلیکیشن شما را پیدا کنند. استفاده از آن در نوار ناوبری، هدر وب‌سایت یا به عنوان یک دکمه شناور، تجربه کاربری را بهبود بخشیده و دسترسی به اطلاعات را تسریع می‌کند.",
-          "tags": "جستجو, ذره بین, یافتن, رابط کاربری, وب, تحقیق, کاوش, سرچ"
+            "title": "آیکون ذره بین جستجو / Search Icon",
+            "description": "آیکون ذره بین جستجو, نمادی واضح و کاربردی برای قابلیت جستجو و کاوش در انواع پلتفرم‌های دیجیتال است. این آیکون که با الهام از سبک طراحی متریال (Material Design) ساخته شده، به کاربران کمک می‌کند تا به راحتی بخش جستجوی سایت یا اپلیکیشن شما را پیدا کنند. استفاده از آن در نوار ناوبری، هدر وب‌سایت یا به عنوان یک دکمه شناور، تجربه کاربری را بهبود بخشیده و دسترسی به اطلاعات را تسریع می‌کند.",
+            "tags": "جستجو, ذره بین, یافتن, رابط کاربری, وب, تحقیق, کاوش, سرچ"
         }}
 
         پاسخ را **فقط و فقط** به صورت یک آبجکت JSON با سه کلید `title`, `description` و `tags` برگردان.
