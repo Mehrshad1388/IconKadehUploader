@@ -20,19 +20,32 @@ genai.configure(api_key=GEMINI_API_KEY)
 app = Flask(__name__, template_folder='web', static_folder='web', static_url_path='')
 
 def clean_svg_content(svg_string):
-    # حذف ویژگی‌های width و height
+    # 1. حذف ویژگی‌های width و height
     modified_content = re.sub(r'\s?width="[^"]*"', '', svg_string, flags=re.IGNORECASE)
     modified_content = re.sub(r'\s?height="[^"]*"', '', modified_content, flags=re.IGNORECASE)
     
-    # جایگزینی هر fill موجود با currentColor
-    modified_content = re.sub(r'fill="[^"]*"', 'fill="currentColor"', modified_content, flags=re.IGNORECASE)
-    
-    # اضافه کردن fill="currentColor" در صورتی که fill وجود نداشته باشد
-    # این کار برای اطمینان از اینکه SVG همیشه یک fill دارد انجام می‌شود
+    # 2. حذف هر ویژگی stroke و stroke-width
+    # این کار باعث می‌شود آیکون‌های Heroicons که فقط stroke دارند، به fill تبدیل شوند.
+    modified_content = re.sub(r'\s?stroke="[^"]*"', '', modified_content, flags=re.IGNORECASE)
+    modified_content = re.sub(r'\s?stroke-width="[^"]*"', '', modified_content, flags=re.IGNORECASE)
+    modified_content = re.sub(r'\s?stroke-linecap="[^"]*"', '', modified_content, flags=re.IGNORECASE)
+    modified_content = re.sub(r'\s?stroke-linejoin="[^"]*"', '', modified_content, flags=re.IGNORECASE)
+
+    # 3. اطمینان از وجود fill="currentColor" در تگ‌های <path>
+    # اگر fill وجود نداشته باشد، آن را اضافه می‌کند.
+    # اگر fill از قبل وجود داشته باشد، آن را به currentColor تغییر می‌دهد (همانند قبل).
     if 'fill=' not in modified_content.lower():
-        # این regex تگ <path> را پیدا کرده و fill="currentColor" را به آن اضافه می‌کند.
-        # این کار را برای هر تگ <path> انجام می‌دهد.
+        # اگر هیچ fill ای وجود ندارد، به اولین تگ <path> اضافه کن
         modified_content = re.sub(r'(<path[^>]*?)(\s?/>|>)', r'\1 fill="currentColor"\2', modified_content, flags=re.IGNORECASE)
+    else:
+        # اگر fill وجود دارد، آن را به currentColor تغییر بده
+        modified_content = re.sub(r'fill="[^"]*"', 'fill="currentColor"', modified_content, flags=re.IGNORECASE)
+    
+    # 4. حذف هرگونه اسکریپت یا تگ‌های <script> برای امنیت بیشتر
+    modified_content = re.sub(r'(<script[\s\S]*?>[\s\S]*?<\/script>)', '', modified_content, flags=re.IGNORECASE)
+    
+    # 5. حذف ویژگی‌های on* (event handlers) برای امنیت بیشتر
+    modified_content = re.sub(r'on\w+="[^"]*?"', '', modified_content, flags=re.IGNORECASE)
 
     return modified_content
 
@@ -57,16 +70,13 @@ def generate_ai_content_api():
         data = request.json
         file_info = data['file_info']
         english_name_hint = data['english_name']
-        # دریافت نام مدل از درخواست، با مقدار پیش‌فرض
         model_name = data.get('model_name', 'gemini-1.5-flash')
         
-        # استفاده از مدل انتخاب‌شده توسط کاربر
         model = genai.GenerativeModel(model_name)
         
         svg_bytes = base64.b64decode(file_info['content'])
         svg_text_content = svg_bytes.decode('utf-8')
 
-        # --- پرامپت جدید و بسیار هوشمندتر ---
         prompt = f"""
         **شخصیت شما:** شما یک متخصص ارشد تولید محتوا و SEO برای وب‌سایت دانلود آیکون "آیکون کده" هستید. مخاطبان شما طراحان وب و توسعه‌دهندگان اپلیکیشن هستند.
 
@@ -124,38 +134,30 @@ def upload_icon_api():
         file = request.files['ik_svg_file']
         
         original_svg_string = file.read().decode('utf-8')
-        cleaned_svg_string = clean_svg_content(original_svg_string)
+        cleaned_svg_string = clean_svg_content(original_svg_string) # اینجا پاک‌سازی کامل انجام می‌شود
         cleaned_bytes = cleaned_svg_string.encode('utf-8')
 
         files = {'ik_svg_file': (file.filename, cleaned_bytes, 'image/svg+xml')}
         
-        # ارسال درخواست به API وردپرس
         response = requests.post(API_ENDPOINT, data=data, files=files, auth=(WP_USERNAME, WP_APP_PASSWORD))
         
-        # اگر وضعیت پاسخ 4xx یا 5xx باشد، یک HTTPError ایجاد می‌کند.
-        # این به ما اجازه می‌دهد خطای دقیق‌تر را از سرور وردپرس بگیریم.
         response.raise_for_status() 
         
         result = response.json()
         if result.get('success'):
             return jsonify({'status': 'success', 'message': f"آیکون با موفقیت منتشر شد! لینک: {result.get('post_link')}"})
         else:
-            # در صورتی که پاسخ 200 باشد اما success: false باشد
             error_message = result.get('message', 'خطای نامشخص از سرور وردپرس.')
             return jsonify({'status': 'error', 'message': f"خطا از سرور: {error_message}"})
             
     except requests.exceptions.HTTPError as http_err:
-        # این بخش خطاهای HTTP (مثل 400 Bad Request) را مدیریت می‌کند.
         try:
-            # تلاش برای خواندن پیام خطا از پاسخ JSON سرور وردپرس
             error_details = http_err.response.json()
             wp_error_message = error_details.get('message', 'خطای HTTP ناشناخته از وردپرس.')
             return jsonify({'status': 'error', 'message': f"خطای HTTP از سرور وردپرس ({http_err.response.status_code}): {wp_error_message}"}), http_err.response.status_code
         except json.JSONDecodeError:
-            # اگر پاسخ سرور JSON نباشد، متن خام پاسخ را برمی‌گرداند.
             return jsonify({'status': 'error', 'message': f"خطای HTTP از سرور وردپرس ({http_err.response.status_code}): {http_err.response.text}"}), http_err.response.status_code
     except Exception as e:
-        # سایر خطاهای پایتون
         return jsonify({'status': 'error', 'message': f"یک خطای ناشناخته در پایتون رخ داد: {e}"}), 500
 
 if __name__ == '__main__':
