@@ -111,7 +111,7 @@ def upload_icon_api():
 
         # *** افزودن منطق تشخیص نوع آیکون ***
         if 'fill="none"' in original_svg_string.lower() and 'stroke=' in original_svg_string.lower():
-            data['ik_icon_type'] = 'stroked' # این نام برای سازگاری با جاوا اسکریپت است
+            data['ik_icon_type'] = 'stroked'
         else:
             data['ik_icon_type'] = 'filled'
         
