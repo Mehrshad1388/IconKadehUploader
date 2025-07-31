@@ -7,12 +7,10 @@ import google.generativeai as genai
 import requests
 from flask import Flask, request, jsonify, render_template
 
-
 # --- بخش تنظیمات ---
 WP_URL = 'https://iconkadeh.ir'
 API_ENDPOINT = f"{WP_URL}/wp-json/iconkadeh/v1/upload"
 WP_USERNAME = 'mehrhas_admin'
-# توصیه می‌شود این پسورد از متغیرهای محیطی خوانده شود
 WP_APP_PASSWORD = os.environ.get('WP_APP_PASSWORD', 'd8RB SMPT NM7v wr7J F0ln WFNg')
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 
@@ -23,7 +21,6 @@ try:
     genai.configure(api_key=GEMINI_API_KEY)
 except Exception as e:
     print(f"خطا در تنظیم Gemini: {e}", file=sys.stderr)
-    # در صورت بروز خطا، برنامه متوقف می‌شود تا از رفتار غیرمنتظره جلوگیری شود
     sys.exit(1)
 
 app = Flask(__name__, template_folder='web', static_folder='web', static_url_path='')
@@ -31,22 +28,37 @@ app = Flask(__name__, template_folder='web', static_folder='web', static_url_pat
 
 def clean_svg_content(svg_string):
     """
-    کد SVG را برای سازگاری با فرانت‌اند آیکون کده تمیز می‌کند.
+    کد SVG را به شکلی هوشمند تمیز می‌کند تا با فرانت‌اند آیکون کده سازگار باشد.
+    این نسخه به طور دقیق نوع آیکون را تشخیص داده و ویژگی‌های رنگی را به درستی مدیریت می‌کند.
     """
-    # حذف ویژگی‌های عرض و ارتفاع برای ریسپانسیو بودن
+    # یک کپی با حروف کوچک برای تحلیل ایجاد می‌کنیم، اما تغییرات را روی رشته اصلی اعمال می‌کنیم
+    svg_lower = svg_string.lower()
+    is_stroked = 'stroke-width' in svg_lower and 'fill="none"' in svg_lower
+
+    # ۱. حذف عرض و ارتفاع برای ریسپانسیو بودن
     cleaned = re.sub(r'\s?width="[^"]*"', '', svg_string, flags=re.IGNORECASE)
     cleaned = re.sub(r'\s?height="[^"]*"', '', cleaned, flags=re.IGNORECASE)
 
-    # جایگزینی رنگ fill با currentColor، به جز fill="none"
+    # ۲. جایگزینی رنگ‌های هاردکد شده با currentColor
+    # از negative lookahead برای نادیده گرفتن "none" استفاده می‌شود
     cleaned = re.sub(r'fill="(?!none")[^"]*"', 'fill="currentColor"', cleaned, flags=re.IGNORECASE)
-
-    # جایگزینی رنگ stroke با currentColor، به جز stroke="none"
     cleaned = re.sub(r'stroke="(?!none")[^"]*"', 'stroke="currentColor"', cleaned, flags=re.IGNORECASE)
-    
-    # اگر هیچ رنگی (fill یا stroke) به currentColor تبدیل نشده بود، به کل تگ SVG اضافه کن
-    # این برای آیکون‌های بسیار ساده که هیچ ویژگی رنگی ندارند کاربرد دارد
-    if 'currentColor' not in cleaned:
-        cleaned = cleaned.replace('<svg', '<svg fill="currentColor"', 1)
+
+    # ۳. اطمینان از اینکه تگ اصلی <svg> یک ویژگی رنگ پیش‌فرض برای ارث‌بری دارد
+    svg_tag_match = re.search(r"<svg[^>]*>", cleaned, re.IGNORECASE)
+    if svg_tag_match:
+        svg_tag = svg_tag_match.group(0)
+        # اگر آیکون خطی باشد، باید stroke پیش‌فرض داشته باشد
+        if is_stroked:
+            if 'stroke=' not in svg_tag.lower():
+                # ویژگی را به تگ اضافه می‌کنیم
+                new_svg_tag = svg_tag.replace('>', ' stroke="currentColor">')
+                cleaned = cleaned.replace(svg_tag, new_svg_tag, 1)
+        # اگر آیکون تو پُر باشد، باید fill پیش‌فرض داشته باشد
+        else:
+            if 'fill=' not in svg_tag.lower():
+                new_svg_tag = svg_tag.replace('>', ' fill="currentColor">')
+                cleaned = cleaned.replace(svg_tag, new_svg_tag, 1)
 
     return cleaned
 
@@ -64,7 +76,6 @@ def get_categories_api():
         cat_url = f"{WP_URL}/wp-json/wp/v2/download_category?per_page=100"
         response = requests.get(cat_url, auth=(WP_USERNAME, WP_APP_PASSWORD), timeout=15)
         response.raise_for_status()
-        # فقط دسته‌بندی‌های والد (بدون فرزند) را برمی‌گرداند
         categories = {cat['id']: cat['name'] for cat in response.json() if cat['parent'] == 0}
         return jsonify(categories)
     except requests.exceptions.RequestException as e:
@@ -89,7 +100,6 @@ def generate_ai_content_api():
         svg_bytes = base64.b64decode(file_info['content'])
         svg_text_content = svg_bytes.decode('utf-8').lower()
 
-        # تشخیص هوشمند سبک آیکون
         is_stroked = 'stroke-width' in svg_text_content and 'fill="none"' in svg_text_content
         icon_style = "Stroked / Line Art (مانند Lucide)" if is_stroked else "Filled (مانند Material Design)"
 
@@ -128,7 +138,6 @@ def upload_icon_api():
         file = request.files['ik_svg_file']
         original_svg_string = file.read().decode('utf-8')
 
-        # تشخیص هوشمند نوع آیکون و افزودن آن به دیتا برای ارسال به وردپرس
         svg_text_lower = original_svg_string.lower()
         if 'stroke-width' in svg_text_lower and 'fill="none"' in svg_text_lower:
             data['ik_icon_type'] = 'stroked'
@@ -147,7 +156,6 @@ def upload_icon_api():
         if result.get('success'):
             return jsonify({'status': 'success', 'message': f"آیکون با موفقیت منتشر شد! لینک: {result.get('post_link')}"})
         else:
-            # نمایش خطای دریافتی از وردپرس
             return jsonify({'status': 'error', 'message': f"خطا از سرور وردپرس: {result.get('message', 'نامشخص')}"}), 400
             
     except requests.exceptions.RequestException as e:
@@ -159,6 +167,4 @@ def upload_icon_api():
 
 
 if __name__ == '__main__':
-    # استفاده از Gunicorn در محیط Production توصیه می‌شود
-    # این حالت فقط برای توسعه محلی است
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
