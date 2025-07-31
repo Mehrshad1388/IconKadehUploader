@@ -7,55 +7,25 @@ import google.generativeai as genai
 import requests
 from flask import Flask, request, jsonify, render_template
 
-# --- بخش تنظیمات ---
+
+# --- بخش تنظیمات (بدون تغییر) ---
 WP_URL = 'https://iconkadeh.ir'
 API_ENDPOINT = f"{WP_URL}/wp-json/iconkadeh/v1/upload"
 WP_USERNAME = 'mehrhas_admin'
-WP_APP_PASSWORD = os.environ.get('WP_APP_PASSWORD', 'd8RB SMPT NM7v wr7J F0ln WFNg')
+WP_APP_PASSWORD = 'd8RB SMPT NM7v wr7J F0ln WFNg'
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 
-# --- راه‌اندازی سرویس‌ها ---
-try:
-    if not GEMINI_API_KEY:
-        raise ValueError("متغیر محیطی GEMINI_API_KEY تعریف نشده است.")
-    genai.configure(api_key=GEMINI_API_KEY)
-except Exception as e:
-    print(f"خطا در تنظیم Gemini: {e}", file=sys.stderr)
-    sys.exit(1)
+genai.configure(api_key=GEMINI_API_KEY)
 
+# --- راه‌اندازی اپلیکیشن Flask (بدون تغییر) ---
 app = Flask(__name__, template_folder='web', static_folder='web', static_url_path='')
 
 
 def clean_svg_content(svg_string):
-    """
-    SVG code را برای سازگاری با فرانت‌اند آیکون کده به شکلی امن و پایدار تمیز می‌کند.
-    این تابع فقط ویژگی‌های ضروری را تغییر می‌دهد و از بازنویسی‌های پیچیده خودداری می‌کند.
-    """
-    # ۱. حذف ویژگی‌های عرض و ارتفاع برای ریسپانسیو بودن
-    cleaned = re.sub(r'\s?width="[^"]*"', '', svg_string, flags=re.IGNORECASE)
-    cleaned = re.sub(r'\s?height="[^"]*"', '', cleaned, flags=re.IGNORECASE)
-
-    # ۲. تمام رنگ‌های fill (به جز fill="none") را با currentColor جایگزین کن
-    cleaned = re.sub(r'fill="(?!none")[^"]*"', 'fill="currentColor"', cleaned, flags=re.IGNORECASE)
-
-    # ۳. تمام رنگ‌های stroke (به جز stroke="none") را با currentColor جایگزین کن
-    cleaned = re.sub(r'stroke="(?!none")[^"]*"', 'stroke="currentColor"', cleaned, flags=re.IGNORECASE)
-
-    # ۴. (فال‌بک نهایی) اگر پس از تمیزکاری، هیچ ویژگی رنگی currentColor وجود نداشت،
-    # بر اساس نوع آیکون، ویژگی مناسب را به تگ اصلی اضافه کن.
-    if 'currentColor' not in cleaned.lower():
-        # اگر آیکون خطی است (بر اساس ساختار اصلی)
-        if 'fill="none"' in svg_string.lower():
-            # اگر stroke هم ندارد، آن را اضافه کن
-            if 'stroke=' not in cleaned.lower():
-                 cleaned = re.sub(r'(<svg[^>]*>)', r'\1 stroke="currentColor"', cleaned, 1, flags=re.IGNORECASE)
-        # در غیر این صورت، آیکون تو پُر است
-        else:
-            # اگر fill هم ندارد، آن را اضافه کن
-            if 'fill=' not in cleaned.lower():
-                cleaned = re.sub(r'(<svg[^>]*>)', r'\1 fill="currentColor"', cleaned, 1, flags=re.IGNORECASE)
-
-    return cleaned
+    modified_content = re.sub(r'\s?width="[^"]*"', '', svg_string, flags=re.IGNORECASE)
+    modified_content = re.sub(r'\s?height="[^"]*"', '', modified_content, flags=re.IGNORECASE)
+    modified_content = re.sub(r'fill="[^"]*"', 'fill="currentColor"', modified_content, flags=re.IGNORECASE)
+    return modified_content
 
 
 @app.route('/')
@@ -67,15 +37,11 @@ def index():
 def get_categories_api():
     try:
         cat_url = f"{WP_URL}/wp-json/wp/v2/download_category?per_page=100"
-        response = requests.get(cat_url, auth=(WP_USERNAME, WP_APP_PASSWORD), timeout=20)
+        response = requests.get(cat_url, auth=(WP_USERNAME, WP_APP_PASSWORD))
         response.raise_for_status()
         categories = {cat['id']: cat['name'] for cat in response.json()}
         return jsonify(categories)
-    except requests.exceptions.RequestException as e:
-        print(f"خطا در ارتباط با وردپرس برای دریافت دسته‌بندی‌ها: {e}", file=sys.stderr)
-        return jsonify({"error": f"خطا در ارتباط با سایت: {e}"}), 502
     except Exception as e:
-        print(f"خطای ناشناخته در دریافت دسته‌بندی‌ها: {e}", file=sys.stderr)
         return jsonify({"error": str(e)}), 500
 
 
@@ -85,77 +51,90 @@ def generate_ai_content_api():
         data = request.json
         file_info = data['file_info']
         english_name_hint = data['english_name']
+        # دریافت نام مدل از درخواست، با مقدار پیش‌فرض
         model_name = data.get('model_name', 'gemini-1.5-flash')
         
+        # استفاده از مدل انتخاب‌شده توسط کاربر
         model = genai.GenerativeModel(model_name)
         
         svg_bytes = base64.b64decode(file_info['content'])
-        svg_text_content = svg_bytes.decode('utf-8').lower()
+        svg_text_content = svg_bytes.decode('utf-8')
 
-        is_stroked = 'stroke-width' in svg_text_content and 'fill="none"' in svg_text_content
-        icon_style = "Stroked / Line Art (مانند Lucide)" if is_stroked else "Filled (مانند Material Design)"
-
+        # --- پرامپت جدید و بسیار هوشمندتر ---
         prompt = f"""
-        **شخصیت:** شما یک متخصص ارشد تولید محتوا و SEO برای وب‌سایت "آیکون کده" هستید.
-        **وظیفه:** تولید عنوان، توضیحات و برچسب‌های حرفه‌ای و بهینه برای آیکون زیر.
+        **شخصیت شما:** شما یک متخصص ارشد تولید محتوا و SEO برای وب‌سایت دانلود آیکون "آیکون کده" هستید. مخاطبان شما طراحان وب و توسعه‌دهندگان اپلیکیشن هستند.
+
+        **وظیفه شما:** تولید عنوان، توضیحات و برچسب‌های حرفه‌ای، جذاب و بهینه برای موتورهای جستجو (SEO) برای آیکون زیر.
+
         **اطلاعات ورودی:**
-        - راهنمای نام انگلیسی: "{english_name_hint}"
-        - سبک طراحی تشخیص داده شده: "{icon_style}"
-        **قوانین:**
-        1.  **عنوان (title):** فرمت `آیکون [نام دقیق فارسی] / [English Name] Icon`.
-        2.  **توضیحات (description):** یک پاراگراف کامل (۴-۵ خط) که با "آیکون [نام دقیق فارسی]،" شروع شود. کاربرد آیکون در UI را شرح بده و به سبک طراحی ({icon_style}) اشاره کن. هرگز در مورد رنگ، اندازه یا فرمت صحبت نکن.
-        3.  **برچسب‌ها (tags):** یک رشته شامل ۶ تا ۸ کلمه کلیدی مرتبط فارسی، جدا شده با کاما.
-        **خروجی:** فقط یک آبجکت JSON با کلیدهای `title`, `description`, و `tags`.
+        - راهنمای نام انگلیسی از کاربر: "{english_name_hint}"
+        - کد SVG آیکون:
+        ```xml
+        {svg_text_content}
+        ```
+
+        **قوانین تولید محتوا (بسیار مهم):**
+        1.  **عنوان (title):**
+            - فرمت باید `آیکون [نام دقیق و توصیفی فارسی] / [English Name] Icon` باشد.
+            - نام فارسی باید خلاقانه و شامل کلمات کلیدی مهم باشد (مثلاً به جای "جستجو"، بنویس "ذره بین جستجو"). عنوان نباید خیلی طولانی شود.
+
+        2.  **توضیحات (description):**
+            - با عبارت فارسی عنوان (`آیکون [نام دقیق و توصیفی فارسی]`) و یک کاما (,) شروع شود.
+            - یک پاراگراف کامل و جذاب (حدود ۴-۵ خط) بنویس.
+            - **ممنوعیت‌ها:** هرگز در مورد **رنگ، اندازه یا فرمت فایل** صحبت نکن، زیرا کاربران می‌توانند این موارد را در سایت تغییر دهند (آیکون‌ها `fill="currentColor"` هستند).
+            - **الزامات:**
+                - کاربرد اصلی آیکون را شرح بده.
+                - به موارد استفاده آن در رابط کاربری (UI) وب‌سایت‌ها و اپلیکیشن‌ها اشاره کن.
+                - **سبک طراحی آیکون** را از روی ظاهر آن تشخیص بده (مثلاً: Material Design, Fluent, iOS Style, فلت, مینیمال) و در متن ذکر کن.
+
+        3.  **برچسب‌ها (tags):**
+            - یک رشته متنی شامل ۶ تا ۸ کلمه کلیدی بسیار مرتبط (فقط فارسی) که با کاما (,) از هم جدا شده‌اند. هم کلمات عمومی و هم کلمات تخصصی‌تر را پوشش بده.
+
+        **مثال خروجی برای آیکون جستجو:**
+        {{
+            "title": "آیکون ذره بین جستجو / Search Icon",
+            "description": "آیکون ذره بین جستجو, نمادی واضح و کاربردی برای قابلیت جستجو و کاوش در انواع پلتفرم‌های دیجیتال است. این آیکون که با الهام از سبک طراحی متریال (Material Design) ساخته شده، به کاربران کمک می‌کند تا به راحتی بخش جستجوی سایت یا اپلیکیشن شما را پیدا کنند. استفاده از آن در نوار ناوبری، هدر وب‌سایت یا به عنوان یک دکمه شناور، تجربه کاربری را بهبود بخشیده و دسترسی به اطلاعات را تسریع می‌کند.",
+            "tags": "جستجو, ذره بین, یافتن, رابط کاربری, وب, تحقیق, کاوش, سرچ"
+        }}
+
+        پاسخ را **فقط و فقط** به صورت یک آبجکت JSON با سه کلید `title`, `description` و `tags` برگردان.
         """
         
         response = model.generate_content(prompt)
-        cleaned_text = re.sub(r'```json|```', '', response.text).strip()
+        text_content = response.text
+        cleaned_text = text_content.strip().replace('```json', '').replace('```', '').strip()
         generated_data = json.loads(cleaned_text)
 
         return jsonify({'status': 'success', 'data': generated_data})
 
     except Exception as e:
-        print(f"ERROR in Gemini generation: {e}", file=sys.stderr)
-        return jsonify({'status': 'error', 'message': f"خطا در ارتباط با هوش مصنوعی: {e}"}), 500
+        print(f"ERROR in Gemini generation: {e}")
+        return jsonify({'status': 'error', 'message': f"یک خطای ناشناخته در ارتباط با هوش مصنوعی رخ داد: {e}"}), 500
 
 
+# بقیه کد بدون تغییر باقی می‌ماند
 @app.route('/api/upload_icon', methods=['POST'])
 def upload_icon_api():
     try:
         data = request.form.to_dict()
-        if 'ik_svg_file' not in request.files:
-            return jsonify({'status': 'error', 'message': 'فایل SVG ارسال نشده است.'}), 400
-            
         file = request.files['ik_svg_file']
-        original_svg_string = file.read().decode('utf-8')
-
-        svg_text_lower = original_svg_string.lower()
-        if 'stroke-width' in svg_text_lower and 'fill="none"' in svg_text_lower:
-            data['ik_icon_type'] = 'stroked'
-        else:
-            data['ik_icon_type'] = 'filled'
         
+        original_svg_string = file.read().decode('utf-8')
         cleaned_svg_string = clean_svg_content(original_svg_string)
         cleaned_bytes = cleaned_svg_string.encode('utf-8')
 
         files = {'ik_svg_file': (file.filename, cleaned_bytes, 'image/svg+xml')}
-        
-        response = requests.post(API_ENDPOINT, data=data, files=files, auth=(WP_USERNAME, WP_APP_PASSWORD), timeout=30)
+        response = requests.post(API_ENDPOINT, data=data, files=files, auth=(WP_USERNAME, WP_APP_PASSWORD))
         response.raise_for_status()
         
         result = response.json()
         if result.get('success'):
             return jsonify({'status': 'success', 'message': f"آیکون با موفقیت منتشر شد! لینک: {result.get('post_link')}"})
         else:
-            return jsonify({'status': 'error', 'message': f"خطا از سرور وردپرس: {result.get('message', 'نامشخص')}"}), 400
-            
-    except requests.exceptions.RequestException as e:
-        print(f"خطا در آپلود به وردپرس: {e}", file=sys.stderr)
-        return jsonify({'status': 'error', 'message': f"خطا در ارتباط با سایت هنگام آپلود: {e}"}), 502
+            return jsonify({'status': 'error', 'message': f"خطا از سرور: {result.get('message')}"})
     except Exception as e:
-        print(f"خطای ناشناخته در آپلود: {e}", file=sys.stderr)
-        return jsonify({'status': 'error', 'message': f"یک خطای ناشناخته در سرور پایتون رخ داد: {e}"}), 500
+        return jsonify({'status': 'error', 'message': f"یک خطای ناشناخته در پایتون رخ داد: {e}"}), 500
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
+    app.run(debug=True, port=5000)
