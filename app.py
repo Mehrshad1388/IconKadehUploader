@@ -29,32 +29,23 @@ app = Flask(__name__, template_folder='web', static_folder='web', static_url_pat
 def clean_svg_content(svg_string):
     """
     کد SVG را به شکلی هوشمند تمیز می‌کند تا با فرانت‌اند آیکون کده سازگار باشد.
-    این نسخه به طور دقیق نوع آیکون را تشخیص داده و ویژگی‌های رنگی را به درستی مدیریت می‌کند.
     """
-    # یک کپی با حروف کوچک برای تحلیل ایجاد می‌کنیم، اما تغییرات را روی رشته اصلی اعمال می‌کنیم
     svg_lower = svg_string.lower()
     is_stroked = 'stroke-width' in svg_lower and 'fill="none"' in svg_lower
 
-    # ۱. حذف عرض و ارتفاع برای ریسپانسیو بودن
     cleaned = re.sub(r'\s?width="[^"]*"', '', svg_string, flags=re.IGNORECASE)
     cleaned = re.sub(r'\s?height="[^"]*"', '', cleaned, flags=re.IGNORECASE)
 
-    # ۲. جایگزینی رنگ‌های هاردکد شده با currentColor
-    # از negative lookahead برای نادیده گرفتن "none" استفاده می‌شود
     cleaned = re.sub(r'fill="(?!none")[^"]*"', 'fill="currentColor"', cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r'stroke="(?!none")[^"]*"', 'stroke="currentColor"', cleaned, flags=re.IGNORECASE)
 
-    # ۳. اطمینان از اینکه تگ اصلی <svg> یک ویژگی رنگ پیش‌فرض برای ارث‌بری دارد
     svg_tag_match = re.search(r"<svg[^>]*>", cleaned, re.IGNORECASE)
     if svg_tag_match:
         svg_tag = svg_tag_match.group(0)
-        # اگر آیکون خطی باشد، باید stroke پیش‌فرض داشته باشد
         if is_stroked:
             if 'stroke=' not in svg_tag.lower():
-                # ویژگی را به تگ اضافه می‌کنیم
                 new_svg_tag = svg_tag.replace('>', ' stroke="currentColor">')
                 cleaned = cleaned.replace(svg_tag, new_svg_tag, 1)
-        # اگر آیکون تو پُر باشد، باید fill پیش‌فرض داشته باشد
         else:
             if 'fill=' not in svg_tag.lower():
                 new_svg_tag = svg_tag.replace('>', ' fill="currentColor">')
@@ -74,14 +65,20 @@ def get_categories_api():
     """دریافت لیست دسته‌بندی‌ها از وردپرس"""
     try:
         cat_url = f"{WP_URL}/wp-json/wp/v2/download_category?per_page=100"
+        # ارتباط با وردپرس با استفاده از نام کاربری و پسورد اپلیکیشن
         response = requests.get(cat_url, auth=(WP_USERNAME, WP_APP_PASSWORD), timeout=15)
-        response.raise_for_status()
-        categories = {cat['id']: cat['name'] for cat in response.json() if cat['parent'] == 0}
+        response.raise_for_status() # اگر خطایی (مثل 401 یا 404) رخ دهد، اینجا متوقف می‌شود
+        
+        # تبدیل پاسخ JSON به دیکشنری برای ارسال به فرانت‌اند
+        categories = {cat['id']: cat['name'] for cat in response.json()}
         return jsonify(categories)
+        
     except requests.exceptions.RequestException as e:
+        # این خطا زمانی رخ می‌دهد که ارتباط با سایت برقرار نشود
         print(f"خطا در ارتباط با وردپرس برای دریافت دسته‌بندی‌ها: {e}", file=sys.stderr)
         return jsonify({"error": f"خطا در ارتباط با سایت: {e}"}), 502
     except Exception as e:
+        # سایر خطاهای احتمالی
         print(f"خطای ناشناخته در دریافت دسته‌بندی‌ها: {e}", file=sys.stderr)
         return jsonify({"error": str(e)}), 500
 
