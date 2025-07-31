@@ -12,7 +12,7 @@ from flask import Flask, request, jsonify, render_template
 WP_URL = 'https://iconkadeh.ir'
 API_ENDPOINT = f"{WP_URL}/wp-json/iconkadeh/v1/upload"
 WP_USERNAME = 'mehrhas_admin'
-WP_APP_PASSWORD = os.environ.get('WP_APP_PASSWORD', 'd8RB SMPT NM7v wr7J F0ln WFNg')
+WP_APP_PASSWORD = 'd8RB SMPT NM7v wr7J F0ln WFNg'
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 
 genai.configure(api_key=GEMINI_API_KEY)
@@ -22,22 +22,15 @@ app = Flask(__name__, template_folder='web', static_folder='web', static_url_pat
 
 
 def clean_svg_content(svg_string):
-    """
-    SVG را به شکلی امن تمیز می‌کند. این نسخه به fill="none" احترام می‌گذارد.
-    """
-    # حذف کامنت‌های HTML برای تمیزکاری بیشتر
-    svg_string = re.sub(r'<!--(.*?)-->', '', svg_string, flags=re.DOTALL)
-
+    # حذف کامنت‌های HTML
+    modified_content = re.sub(r'<!--(.*?)-->', '', svg_string, flags=re.DOTALL)
     # حذف عرض و ارتفاع
-    modified_content = re.sub(r'\s?width="[^"]*"', '', svg_string, flags=re.IGNORECASE)
+    modified_content = re.sub(r'\s?width="[^"]*"', '', modified_content, flags=re.IGNORECASE)
     modified_content = re.sub(r'\s?height="[^"]*"', '', modified_content, flags=re.IGNORECASE)
-
     # *** اصلاح کلیدی: فقط fill هایی که "none" نیستند را جایگزین کن ***
     modified_content = re.sub(r'fill="(?!none")[^"]*"', 'fill="currentColor"', modified_content, flags=re.IGNORECASE)
-    
-    # برای اطمینان، stroke ها را هم به currentColor تبدیل می‌کنیم (اگر از قبل نباشند)
-    modified_content = re.sub(r'stroke="(?!currentColor")[^"]*"', 'stroke="currentColor"', modified_content, flags=re.IGNORECASE)
-
+    # برای اطمینان، stroke ها را هم به currentColor تبدیل می‌کنیم
+    modified_content = re.sub(r'stroke="[^"]*"', 'stroke="currentColor"', modified_content, flags=re.IGNORECASE)
     return modified_content.strip()
 
 
@@ -73,18 +66,27 @@ def generate_ai_content_api():
 
         prompt = f"""
         **شخصیت شما:** شما یک متخصص ارشد تولید محتوا و SEO برای وب‌سایت دانلود آیکون "آیکون کده" هستید.
-        **وظیفه شما:** تولید عنوان، توضیحات و برچسب‌های حرفه‌ای و بهینه برای آیکون زیر.
+        **وظیفه شما:** تولید عنوان، توضیحات و برچسب‌های حرفه‌ای و بهینه برای موتورهای جستجو (SEO) برای آیکون زیر.
         **اطلاعات ورودی:**
-        - راهنمای نام انگلیسی: "{english_name_hint}"
+        - راهنمای نام انگلیسی از کاربر: "{english_name_hint}"
         - کد SVG آیکون:
         ```xml
         {svg_text_content}
         ```
-        **قوانین تولید محتوا:**
-        1.  **عنوان (title):** فرمت `آیکون [نام دقیق فارسی] / [English Name] Icon`.
-        2.  **توضیحات (description):** یک پاراگراف کامل (۴-۵ خط) که با "آیکون [نام دقیق فارسی]،" شروع شود. کاربرد آیکون در UI را شرح بده.
-        3.  **برچسب‌ها (tags):** یک رشته شامل ۶ تا ۸ کلمه کلیدی مرتبط فارسی، جدا شده با کاما.
-        **خروجی:** فقط یک آبجکت JSON با کلیدهای `title`, `description`, و `tags`.
+        **قوانین تولید محتوا (بسیار مهم):**
+        1.  **عنوان (title):**
+            - فرمت باید `آیکون [نام دقیق و توصیفی فارسی] / [English Name] Icon` باشد.
+        2.  **توضیحات (description):**
+            - با عبارت فارسی عنوان (`آیکون [نام دقیق و توصیفی فارسی]`) و یک کاما (,) شروع شود.
+            - یک پاراگراف کامل و جذاب (حدود ۴-۵ خط) بنویس.
+            - **ممنوعیت‌ها:** هرگز در مورد **رنگ، اندازه یا فرمت فایل** صحبت نکن.
+            - **الزامات:**
+                - کاربرد اصلی آیکون را شرح بده.
+                - به موارد استفاده آن در رابط کاربری (UI) وب‌سایت‌ها و اپلیکیشن‌ها اشاره کن.
+        3.  **برچسب‌ها (tags):**
+            - یک رشته متنی شامل ۶ تا ۸ کلمه کلیدی بسیار مرتبط (فقط فارسی) که با کاما (,) از هم جدا شده‌اند.
+        **خروجی:**
+        فقط و فقط یک آبجکت JSON با سه کلید `title`, `description` و `tags`.
         """
         
         response = model.generate_content(prompt)
@@ -106,13 +108,13 @@ def upload_icon_api():
         file = request.files['ik_svg_file']
         
         original_svg_string = file.read().decode('utf-8')
-        
-        # تشخیص نوع آیکون و افزودن آن به دیتا برای ارسال به وردپرس
+
+        # *** افزودن منطق تشخیص نوع آیکون ***
         if 'fill="none"' in original_svg_string.lower() and 'stroke=' in original_svg_string.lower():
-            data['ik_icon_type'] = 'stroked'
+            data['ik_icon_type'] = 'stroked' # این نام برای سازگاری با جاوا اسکریپت است
         else:
             data['ik_icon_type'] = 'filled'
-
+        
         cleaned_svg_string = clean_svg_content(original_svg_string)
         cleaned_bytes = cleaned_svg_string.encode('utf-8')
 
