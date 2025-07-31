@@ -8,7 +8,7 @@ import requests
 from flask import Flask, request, jsonify, render_template
 
 
-# --- بخش تنظیمات (دست نخورده) ---
+# --- بخش تنظیمات (بدون تغییر) ---
 WP_URL = 'https://iconkadeh.ir'
 API_ENDPOINT = f"{WP_URL}/wp-json/iconkadeh/v1/upload"
 WP_USERNAME = 'mehrhas_admin'
@@ -17,21 +17,15 @@ GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 
 genai.configure(api_key=GEMINI_API_KEY)
 
-# --- راه‌اندازی اپلیکیشن Flask (دست نخورده) ---
+# --- راه‌اندازی اپلیکیشن Flask (بدون تغییر) ---
 app = Flask(__name__, template_folder='web', static_folder='web', static_url_path='')
 
 
 def clean_svg_content(svg_string):
-    # حذف کامنت‌های HTML
-    modified_content = re.sub(r'<!--(.*?)-->', '', svg_string, flags=re.DOTALL)
-    # حذف عرض و ارتفاع
-    modified_content = re.sub(r'\s?width="[^"]*"', '', modified_content, flags=re.IGNORECASE)
+    modified_content = re.sub(r'\s?width="[^"]*"', '', svg_string, flags=re.IGNORECASE)
     modified_content = re.sub(r'\s?height="[^"]*"', '', modified_content, flags=re.IGNORECASE)
-    # *** اصلاح کلیدی: فقط fill هایی که "none" نیستند را جایگزین کن ***
-    modified_content = re.sub(r'fill="(?!none")[^"]*"', 'fill="currentColor"', modified_content, flags=re.IGNORECASE)
-    # برای اطمینان، stroke ها را هم به currentColor تبدیل می‌کنیم
-    modified_content = re.sub(r'stroke="[^"]*"', 'stroke="currentColor"', modified_content, flags=re.IGNORECASE)
-    return modified_content.strip()
+    modified_content = re.sub(r'fill="[^"]*"', 'fill="currentColor"', modified_content, flags=re.IGNORECASE)
+    return modified_content
 
 
 @app.route('/')
@@ -57,36 +51,53 @@ def generate_ai_content_api():
         data = request.json
         file_info = data['file_info']
         english_name_hint = data['english_name']
+        # دریافت نام مدل از درخواست، با مقدار پیش‌فرض
         model_name = data.get('model_name', 'gemini-1.5-flash')
         
+        # استفاده از مدل انتخاب‌شده توسط کاربر
         model = genai.GenerativeModel(model_name)
         
         svg_bytes = base64.b64decode(file_info['content'])
         svg_text_content = svg_bytes.decode('utf-8')
 
+        # --- پرامپت جدید و بسیار هوشمندتر ---
         prompt = f"""
-        **شخصیت شما:** شما یک متخصص ارشد تولید محتوا و SEO برای وب‌سایت دانلود آیکون "آیکون کده" هستید.
-        **وظیفه شما:** تولید عنوان، توضیحات و برچسب‌های حرفه‌ای و بهینه برای موتورهای جستجو (SEO) برای آیکون زیر.
+        **شخصیت شما:** شما یک متخصص ارشد تولید محتوا و SEO برای وب‌سایت دانلود آیکون "آیکون کده" هستید. مخاطبان شما طراحان وب و توسعه‌دهندگان اپلیکیشن هستند.
+
+        **وظیفه شما:** تولید عنوان، توضیحات و برچسب‌های حرفه‌ای، جذاب و بهینه برای موتورهای جستجو (SEO) برای آیکون زیر.
+
         **اطلاعات ورودی:**
         - راهنمای نام انگلیسی از کاربر: "{english_name_hint}"
         - کد SVG آیکون:
         ```xml
         {svg_text_content}
         ```
+
         **قوانین تولید محتوا (بسیار مهم):**
         1.  **عنوان (title):**
             - فرمت باید `آیکون [نام دقیق و توصیفی فارسی] / [English Name] Icon` باشد.
+            - نام فارسی باید خلاقانه و شامل کلمات کلیدی مهم باشد (مثلاً به جای "جستجو"، بنویس "ذره بین جستجو"). عنوان نباید خیلی طولانی شود.
+
         2.  **توضیحات (description):**
             - با عبارت فارسی عنوان (`آیکون [نام دقیق و توصیفی فارسی]`) و یک کاما (,) شروع شود.
             - یک پاراگراف کامل و جذاب (حدود ۴-۵ خط) بنویس.
-            - **ممنوعیت‌ها:** هرگز در مورد **رنگ، اندازه یا فرمت فایل** صحبت نکن.
+            - **ممنوعیت‌ها:** هرگز در مورد **رنگ، اندازه یا فرمت فایل** صحبت نکن، زیرا کاربران می‌توانند این موارد را در سایت تغییر دهند (آیکون‌ها `fill="currentColor"` هستند).
             - **الزامات:**
                 - کاربرد اصلی آیکون را شرح بده.
                 - به موارد استفاده آن در رابط کاربری (UI) وب‌سایت‌ها و اپلیکیشن‌ها اشاره کن.
+                - **سبک طراحی آیکون** را از روی ظاهر آن تشخیص بده (مثلاً: Material Design, Fluent, iOS Style, فلت, مینیمال) و در متن ذکر کن.
+
         3.  **برچسب‌ها (tags):**
-            - یک رشته متنی شامل ۶ تا ۸ کلمه کلیدی بسیار مرتبط (فقط فارسی) که با کاما (,) از هم جدا شده‌اند.
-        **خروجی:**
-        فقط و فقط یک آبجکت JSON با سه کلید `title`, `description` و `tags`.
+            - یک رشته متنی شامل ۶ تا ۸ کلمه کلیدی بسیار مرتبط (فقط فارسی) که با کاما (,) از هم جدا شده‌اند. هم کلمات عمومی و هم کلمات تخصصی‌تر را پوشش بده.
+
+        **مثال خروجی برای آیکون جستجو:**
+        {{
+            "title": "آیکون ذره بین جستجو / Search Icon",
+            "description": "آیکون ذره بین جستجو, نمادی واضح و کاربردی برای قابلیت جستجو و کاوش در انواع پلتفرم‌های دیجیتال است. این آیکون که با الهام از سبک طراحی متریال (Material Design) ساخته شده، به کاربران کمک می‌کند تا به راحتی بخش جستجوی سایت یا اپلیکیشن شما را پیدا کنند. استفاده از آن در نوار ناوبری، هدر وب‌سایت یا به عنوان یک دکمه شناور، تجربه کاربری را بهبود بخشیده و دسترسی به اطلاعات را تسریع می‌کند.",
+            "tags": "جستجو, ذره بین, یافتن, رابط کاربری, وب, تحقیق, کاوش, سرچ"
+        }}
+
+        پاسخ را **فقط و فقط** به صورت یک آبجکت JSON با سه کلید `title`, `description` و `tags` برگردان.
         """
         
         response = model.generate_content(prompt)
@@ -101,6 +112,7 @@ def generate_ai_content_api():
         return jsonify({'status': 'error', 'message': f"یک خطای ناشناخته در ارتباط با هوش مصنوعی رخ داد: {e}"}), 500
 
 
+# بقیه کد بدون تغییر باقی می‌ماند
 @app.route('/api/upload_icon', methods=['POST'])
 def upload_icon_api():
     try:
@@ -108,13 +120,6 @@ def upload_icon_api():
         file = request.files['ik_svg_file']
         
         original_svg_string = file.read().decode('utf-8')
-
-        # *** افزودن منطق تشخیص نوع آیکون ***
-        if 'fill="none"' in original_svg_string.lower() and 'stroke=' in original_svg_string.lower():
-            data['ik_icon_type'] = 'stroked'
-        else:
-            data['ik_icon_type'] = 'filled'
-        
         cleaned_svg_string = clean_svg_content(original_svg_string)
         cleaned_bytes = cleaned_svg_string.encode('utf-8')
 
