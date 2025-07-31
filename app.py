@@ -64,21 +64,18 @@ def index():
 def get_categories_api():
     """دریافت لیست دسته‌بندی‌ها از وردپرس"""
     try:
+        # این آدرس دقیقاً بر اساس کدی که در functions.php فعال شده، کار می‌کند
         cat_url = f"{WP_URL}/wp-json/wp/v2/download_category?per_page=100"
-        # ارتباط با وردپرس با استفاده از نام کاربری و پسورد اپلیکیشن
-        response = requests.get(cat_url, auth=(WP_USERNAME, WP_APP_PASSWORD), timeout=15)
-        response.raise_for_status() # اگر خطایی (مثل 401 یا 404) رخ دهد، اینجا متوقف می‌شود
+        response = requests.get(cat_url, auth=(WP_USERNAME, WP_APP_PASSWORD), timeout=20)
+        response.raise_for_status()
         
-        # تبدیل پاسخ JSON به دیکشنری برای ارسال به فرانت‌اند
         categories = {cat['id']: cat['name'] for cat in response.json()}
         return jsonify(categories)
         
     except requests.exceptions.RequestException as e:
-        # این خطا زمانی رخ می‌دهد که ارتباط با سایت برقرار نشود
         print(f"خطا در ارتباط با وردپرس برای دریافت دسته‌بندی‌ها: {e}", file=sys.stderr)
         return jsonify({"error": f"خطا در ارتباط با سایت: {e}"}), 502
     except Exception as e:
-        # سایر خطاهای احتمالی
         print(f"خطای ناشناخته در دریافت دسته‌بندی‌ها: {e}", file=sys.stderr)
         return jsonify({"error": str(e)}), 500
 
