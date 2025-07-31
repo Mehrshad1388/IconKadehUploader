@@ -22,10 +22,30 @@ app = Flask(__name__, template_folder='web', static_folder='web', static_url_pat
 
 
 def clean_svg_content(svg_string):
-    modified_content = re.sub(r'\s?width="[^"]*"', '', svg_string, flags=re.IGNORECASE)
-    modified_content = re.sub(r'\s?height="[^"]*"', '', modified_content, flags=re.IGNORECASE)
-    modified_content = re.sub(r'fill="[^"]*"', 'fill="currentColor"', modified_content, flags=re.IGNORECASE)
-    return modified_content
+    """
+    کد SVG را برای سازگاری با فرانت‌اند آیکون کده تمیز می‌کند.
+    - عرض و ارتفاع ثابت را حذف می‌کند.
+    - رنگ‌های هاردکد شده در fill/stroke را با 'currentColor' جایگزین می‌کند تا آیکون داینامیک شود.
+    - مقادیر 'none' را برای fill/stroke دست‌نخورده باقی می‌گذارد.
+    """
+    # ۱. حذف ویژگی‌های عرض و ارتفاع
+    cleaned = re.sub(r'\s?width="[^"]*"', '', svg_string, flags=re.IGNORECASE)
+    cleaned = re.sub(r'\s?height="[^"]*"', '', cleaned, flags=re.IGNORECASE)
+
+    # ۲. جایگزینی رنگ fill با currentColor، به جز fill="none"
+    cleaned = re.sub(r'fill="(?!none")[^"]*"', 'fill="currentColor"', cleaned, flags=re.IGNORECASE)
+
+    # ۳. جایگزینی رنگ stroke با currentColor، به جز stroke="none"
+    cleaned = re.sub(r'stroke="(?!none")[^"]*"', 'stroke="currentColor"', cleaned, flags=re.IGNORECASE)
+    
+    # ۴. اگر آیکون اصلی خطی بود اما stroke="currentColor" نداشت، آن را اضافه می‌کند.
+    # این یک فال‌بک است، چون آیکون‌های Lucide معمولاً این ویژگی را دارند.
+    if 'stroke' in svg_string.lower() and 'stroke="currentColor"' not in cleaned.lower():
+         # اطمینان از اینکه stroke="none" جایگزین نشود
+        if 'stroke="none"' not in svg_string.lower():
+            cleaned = cleaned.replace('<svg', '<svg stroke="currentColor"', 1)
+
+    return cleaned
 
 
 @app.route('/')
@@ -51,16 +71,19 @@ def generate_ai_content_api():
         data = request.json
         file_info = data['file_info']
         english_name_hint = data['english_name']
-        # دریافت نام مدل از درخواست، با مقدار پیش‌فرض
         model_name = data.get('model_name', 'gemini-1.5-flash')
         
-        # استفاده از مدل انتخاب‌شده توسط کاربر
         model = genai.GenerativeModel(model_name)
         
         svg_bytes = base64.b64decode(file_info['content'])
         svg_text_content = svg_bytes.decode('utf-8')
 
-        # --- پرامپت جدید و بسیار هوشمندتر ---
+        # تشخیص سبک آیکون برای ارسال به پرامپت
+        icon_style = "Material Design (تو پُر)"
+        if 'stroke-width' in svg_text_content.lower() and 'fill="none"' in svg_text_content.lower():
+            icon_style = "Stroked / Line Art (مانند Lucide)"
+
+        # --- پرامپت هوشمندتر شده برای تشخیص سبک ---
         prompt = f"""
         **شخصیت شما:** شما یک متخصص ارشد تولید محتوا و SEO برای وب‌سایت دانلود آیکون "آیکون کده" هستید. مخاطبان شما طراحان وب و توسعه‌دهندگان اپلیکیشن هستند.
 
@@ -68,6 +91,7 @@ def generate_ai_content_api():
 
         **اطلاعات ورودی:**
         - راهنمای نام انگلیسی از کاربر: "{english_name_hint}"
+        - سبک طراحی تشخیص داده شده: "{icon_style}"
         - کد SVG آیکون:
         ```xml
         {svg_text_content}
@@ -76,24 +100,24 @@ def generate_ai_content_api():
         **قوانین تولید محتوا (بسیار مهم):**
         1.  **عنوان (title):**
             - فرمت باید `آیکون [نام دقیق و توصیفی فارسی] / [English Name] Icon` باشد.
-            - نام فارسی باید خلاقانه و شامل کلمات کلیدی مهم باشد (مثلاً به جای "جستجو"، بنویس "ذره بین جستجو"). عنوان نباید خیلی طولانی شود.
+            - نام فارسی باید خلاقانه و شامل کلمات کلیدی مهم باشد.
 
         2.  **توضیحات (description):**
             - با عبارت فارسی عنوان (`آیکون [نام دقیق و توصیفی فارسی]`) و یک کاما (,) شروع شود.
             - یک پاراگراف کامل و جذاب (حدود ۴-۵ خط) بنویس.
-            - **ممنوعیت‌ها:** هرگز در مورد **رنگ، اندازه یا فرمت فایل** صحبت نکن، زیرا کاربران می‌توانند این موارد را در سایت تغییر دهند (آیکون‌ها `fill="currentColor"` هستند).
+            - **ممنوعیت‌ها:** هرگز در مورد **رنگ، اندازه یا فرمت فایل** صحبت نکن.
             - **الزامات:**
                 - کاربرد اصلی آیکون را شرح بده.
                 - به موارد استفاده آن در رابط کاربری (UI) وب‌سایت‌ها و اپلیکیشن‌ها اشاره کن.
-                - **سبک طراحی آیکون** را از روی ظاهر آن تشخیص بده (مثلاً: Material Design, Fluent, iOS Style, فلت, مینیمال) و در متن ذکر کن.
+                - **از سبک طراحی که برایت مشخص شده ("{icon_style}") در متن استفاده کن** و آن را تایید کن.
 
         3.  **برچسب‌ها (tags):**
-            - یک رشته متنی شامل ۶ تا ۸ کلمه کلیدی بسیار مرتبط (فقط فارسی) که با کاما (,) از هم جدا شده‌اند. هم کلمات عمومی و هم کلمات تخصصی‌تر را پوشش بده.
+            - یک رشته متنی شامل ۶ تا ۸ کلمه کلیدی بسیار مرتبط (فقط فارسی) که با کاما (,) از هم جدا شده‌اند.
 
-        **مثال خروجی برای آیکون جستجو:**
+        **مثال خروجی برای آیکون خطی جستجو:**
         {{
             "title": "آیکون ذره بین جستجو / Search Icon",
-            "description": "آیکون ذره بین جستجو, نمادی واضح و کاربردی برای قابلیت جستجو و کاوش در انواع پلتفرم‌های دیجیتال است. این آیکون که با الهام از سبک طراحی متریال (Material Design) ساخته شده، به کاربران کمک می‌کند تا به راحتی بخش جستجوی سایت یا اپلیکیشن شما را پیدا کنند. استفاده از آن در نوار ناوبری، هدر وب‌سایت یا به عنوان یک دکمه شناور، تجربه کاربری را بهبود بخشیده و دسترسی به اطلاعات را تسریع می‌کند.",
+            "description": "آیکون ذره بین جستجو, یک نماد مینیمال و زیبا برای قابلیت جستجو است که با سبک طراحی خطی (Line Art) ساخته شده است. این آیکون برای استفاده در رابط‌های کاربری مدرن که بر سادگی و وضوح تاکید دارند، ایده‌آل است. قرار دادن آن در نوار ابزار اپلیکیشن یا هدر وب‌سایت، به کاربران کمک می‌کند تا به سرعت به قابلیت جستجو دسترسی پیدا کنند.",
             "tags": "جستجو, ذره بین, یافتن, رابط کاربری, وب, تحقیق, کاوش, سرچ"
         }}
 
@@ -112,7 +136,6 @@ def generate_ai_content_api():
         return jsonify({'status': 'error', 'message': f"یک خطای ناشناخته در ارتباط با هوش مصنوعی رخ داد: {e}"}), 500
 
 
-# بقیه کد بدون تغییر باقی می‌ماند
 @app.route('/api/upload_icon', methods=['POST'])
 def upload_icon_api():
     try:
@@ -120,6 +143,14 @@ def upload_icon_api():
         file = request.files['ik_svg_file']
         
         original_svg_string = file.read().decode('utf-8')
+
+        # تشخیص نوع آیکون و افزودن آن به دیتا برای ارسال به وردپرس
+        # آیکون‌های Lucide معمولاً stroke-width و fill="none" دارند
+        if 'stroke-width' in original_svg_string.lower() and 'fill="none"' in original_svg_string.lower():
+            data['ik_icon_type'] = 'stroked'
+        else:
+            data['ik_icon_type'] = 'filled'
+        
         cleaned_svg_string = clean_svg_content(original_svg_string)
         cleaned_bytes = cleaned_svg_string.encode('utf-8')
 
