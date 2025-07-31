@@ -28,50 +28,49 @@ app = Flask(__name__, template_folder='web', static_folder='web', static_url_pat
 
 def clean_svg_content(svg_string):
     """
-    کد SVG را به شکلی هوشمند تمیز می‌کند تا با فرانت‌اند آیکون کده سازگار باشد.
+    SVG code را برای سازگاری با فرانت‌اند آیکون کده به شکلی امن و پایدار تمیز می‌کند.
+    این تابع فقط ویژگی‌های ضروری را تغییر می‌دهد و از بازنویسی‌های پیچیده خودداری می‌کند.
     """
-    svg_lower = svg_string.lower()
-    is_stroked = 'stroke-width' in svg_lower and 'fill="none"' in svg_lower
-
+    # ۱. حذف ویژگی‌های عرض و ارتفاع برای ریسپانسیو بودن
     cleaned = re.sub(r'\s?width="[^"]*"', '', svg_string, flags=re.IGNORECASE)
     cleaned = re.sub(r'\s?height="[^"]*"', '', cleaned, flags=re.IGNORECASE)
 
+    # ۲. تمام رنگ‌های fill (به جز fill="none") را با currentColor جایگزین کن
     cleaned = re.sub(r'fill="(?!none")[^"]*"', 'fill="currentColor"', cleaned, flags=re.IGNORECASE)
+
+    # ۳. تمام رنگ‌های stroke (به جز stroke="none") را با currentColor جایگزین کن
     cleaned = re.sub(r'stroke="(?!none")[^"]*"', 'stroke="currentColor"', cleaned, flags=re.IGNORECASE)
 
-    svg_tag_match = re.search(r"<svg[^>]*>", cleaned, re.IGNORECASE)
-    if svg_tag_match:
-        svg_tag = svg_tag_match.group(0)
-        if is_stroked:
-            if 'stroke=' not in svg_tag.lower():
-                new_svg_tag = svg_tag.replace('>', ' stroke="currentColor">')
-                cleaned = cleaned.replace(svg_tag, new_svg_tag, 1)
+    # ۴. (فال‌بک نهایی) اگر پس از تمیزکاری، هیچ ویژگی رنگی currentColor وجود نداشت،
+    # بر اساس نوع آیکون، ویژگی مناسب را به تگ اصلی اضافه کن.
+    if 'currentColor' not in cleaned.lower():
+        # اگر آیکون خطی است (بر اساس ساختار اصلی)
+        if 'fill="none"' in svg_string.lower():
+            # اگر stroke هم ندارد، آن را اضافه کن
+            if 'stroke=' not in cleaned.lower():
+                 cleaned = re.sub(r'(<svg[^>]*>)', r'\1 stroke="currentColor"', cleaned, 1, flags=re.IGNORECASE)
+        # در غیر این صورت، آیکون تو پُر است
         else:
-            if 'fill=' not in svg_tag.lower():
-                new_svg_tag = svg_tag.replace('>', ' fill="currentColor">')
-                cleaned = cleaned.replace(svg_tag, new_svg_tag, 1)
+            # اگر fill هم ندارد، آن را اضافه کن
+            if 'fill=' not in cleaned.lower():
+                cleaned = re.sub(r'(<svg[^>]*>)', r'\1 fill="currentColor"', cleaned, 1, flags=re.IGNORECASE)
 
     return cleaned
 
 
 @app.route('/')
 def index():
-    """نمایش صفحه اصلی آپلودر"""
     return render_template('index.html')
 
 
 @app.route('/api/get_categories', methods=['GET'])
 def get_categories_api():
-    """دریافت لیست دسته‌بندی‌ها از وردپرس"""
     try:
-        # این آدرس دقیقاً بر اساس کدی که در functions.php فعال شده، کار می‌کند
         cat_url = f"{WP_URL}/wp-json/wp/v2/download_category?per_page=100"
         response = requests.get(cat_url, auth=(WP_USERNAME, WP_APP_PASSWORD), timeout=20)
         response.raise_for_status()
-        
         categories = {cat['id']: cat['name'] for cat in response.json()}
         return jsonify(categories)
-        
     except requests.exceptions.RequestException as e:
         print(f"خطا در ارتباط با وردپرس برای دریافت دسته‌بندی‌ها: {e}", file=sys.stderr)
         return jsonify({"error": f"خطا در ارتباط با سایت: {e}"}), 502
@@ -82,7 +81,6 @@ def get_categories_api():
 
 @app.route('/api/generate_ai_content', methods=['POST'])
 def generate_ai_content_api():
-    """تولید محتوای آیکون با استفاده از Gemini AI"""
     try:
         data = request.json
         file_info = data['file_info']
@@ -123,7 +121,6 @@ def generate_ai_content_api():
 
 @app.route('/api/upload_icon', methods=['POST'])
 def upload_icon_api():
-    """پردازش و آپلود نهایی آیکون در وردپرس"""
     try:
         data = request.form.to_dict()
         if 'ik_svg_file' not in request.files:
