@@ -22,10 +22,26 @@ app = Flask(__name__, template_folder='web', static_folder='web', static_url_pat
 
 
 def clean_svg_content(svg_string):
-    modified_content = re.sub(r'\s?width="[^"]*"', '', svg_string, flags=re.IGNORECASE)
-    modified_content = re.sub(r'\s?height="[^"]*"', '', modified_content, flags=re.IGNORECASE)
-    modified_content = re.sub(r'fill="[^"]*"', 'fill="currentColor"', modified_content, flags=re.IGNORECASE)
-    return modified_content
+    # Regex برای پیدا کردن تگ <svg>
+    svg_tag_pattern = re.compile(r'<svg(.*?)>', re.DOTALL | re.IGNORECASE)
+    match = svg_tag_pattern.search(svg_string)
+
+    if not match:
+        return svg_string
+
+    svg_tag_content = match.group(1)
+
+    # حذف width و height
+    new_tag_content = re.sub(r'\s?width="[^"]*"', '', svg_tag_content, flags=re.IGNORECASE)
+    new_tag_content = re.sub(r'\s?height="[^"]*"', '', new_tag_content, flags=re.IGNORECASE)
+
+    # تغییر fill به currentColor
+    new_tag_content = re.sub(r'fill="[^"]*"', 'fill="currentColor"', new_tag_content, flags=re.IGNORECASE)
+
+    # جایگزینی تگ اصلی با تگ اصلاح شده
+    modified_svg_string = svg_tag_pattern.sub(f'<svg{new_tag_content}>', svg_string, count=1)
+    
+    return modified_svg_string
 
 
 @app.route('/')
