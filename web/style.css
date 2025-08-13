@@ -8,11 +8,10 @@
 
 body {
     font-family: 'Vazirmatn', sans-serif;
-    background: linear-gradient(135deg, #f3f4f6, #e5e9f0);
+    background: linear-gradient(135deg, #eef2f3, #d9e2ec);
     margin: 0;
     padding: 20px;
     color: #333;
-    -webkit-font-smoothing: antialiased;
 }
 
 .container {
@@ -21,22 +20,21 @@ body {
     background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(12px);
     border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden; /* باگ لبه‌ها حل شد */
+    box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+    animation: fadeIn 0.5s ease-in-out;
 }
-.container:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 14px 35px rgba(0, 0, 0, 0.12);
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .header {
-    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+    background: linear-gradient(90deg, #6a11cb, #2575fc);
     color: white;
     padding: 25px 30px;
     text-align: center;
 }
-
 .header h1 {
     margin: 0;
     font-size: 26px;
@@ -44,7 +42,7 @@ body {
 }
 
 form {
-    padding: 20px 30px 35px 30px;
+    padding: 25px 30px 35px;
 }
 
 .form-section {
@@ -54,14 +52,13 @@ form {
 }
 .form-section:last-of-type {
     border-bottom: none;
-    margin-bottom: 15px;
 }
 
 .form-section h2 {
     font-size: 18px;
+    font-weight: 700;
     color: #222;
     margin-bottom: 18px;
-    font-weight: 700;
 }
 
 .form-group label {
@@ -78,52 +75,47 @@ form {
     width: 100%;
     padding: 12px 15px;
     border: 1px solid #d0d7de;
-    border-radius: 10px;
-    box-sizing: border-box;
-    transition: all 0.25s ease;
-    font-family: 'Vazirmatn', sans-serif;
+    border-radius: 12px;
     font-size: 15px;
-    background-color: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(5px);
+    background: rgba(255,255,255,0.9);
+    transition: all 0.25s ease;
 }
-.form-group input[type="text"]:focus,
+.form-group input:focus,
 .form-group textarea:focus,
 .form-group select:focus {
-    outline: none;
     border-color: #2575fc;
-    box-shadow: 0 0 0 4px rgba(37, 117, 252, 0.15);
+    box-shadow: 0 0 0 4px rgba(37,117,252,0.15);
+    outline: none;
 }
-
-.form-group .ltr { direction: ltr; text-align: left; }
 
 .file-area {
     position: relative;
     width: 100%;
+    border-radius: 12px; /* گرد شدن لبه‌ها */
+    overflow: hidden; /* جلوگیری از بیرون زدن */
 }
 .file-area input[type=file] {
     position: absolute;
     width: 100%;
     height: 100%;
-    top: 0;
-    left: 0;
+    top: 0; left: 0;
     opacity: 0;
     cursor: pointer;
 }
 .file-dummy {
     width: 100%;
-    padding: 30px;
-    background: rgba(248, 249, 250, 0.9);
-    border: 2px dashed #d0d7de;
+    padding: 35px;
+    background: rgba(255,255,255,0.5);
+    border: 2px dashed rgba(0,0,0,0.1);
     text-align: center;
     border-radius: 12px;
-    transition: all 0.25s ease;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
 }
 .file-area:hover .file-dummy {
-    background: rgba(233, 236, 239, 0.9);
+    background: rgba(255,255,255,0.8);
     border-color: #2575fc;
+    transform: scale(1.02);
 }
 .file-dummy .file-text {
     color: #6c757d;
@@ -143,38 +135,24 @@ form {
     color: #fff;
     background: linear-gradient(135deg, #ff7e5f, #feb47b);
     border: none;
-    border-radius: 10px;
+    border-radius: 12px;
     cursor: pointer;
     transition: all 0.3s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    box-shadow: 0 4px 15px rgba(254, 180, 123, 0.4);
+    box-shadow: 0 4px 15px rgba(254,180,123,0.4);
 }
 .ai-btn:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(254, 180, 123, 0.6);
+    box-shadow: 0 6px 20px rgba(254,180,123,0.6);
 }
 .ai-btn:disabled {
     background: #e9ecef;
     color: #adb5bd;
-    cursor: not-allowed;
-    box-shadow: none;
-}
-.magic-icon {
-    display: inline-block;
-    transition: transform 0.3s;
-}
-.ai-btn:hover:not(:disabled) .magic-icon {
-    transform: rotate(25deg) scale(1.2);
 }
 
 .status-bar {
     padding: 12px;
-    border-radius: 8px;
+    border-radius: 10px;
     margin-top: 20px;
-    text-align: center;
-    transition: all 0.3s;
     font-weight: 500;
 }
 .status-bar.success { background-color: #d1e7dd; color: #0f5132; }
@@ -189,25 +167,21 @@ form {
     color: white;
     background: linear-gradient(135deg, #2575fc, #6a11cb);
     border: none;
-    border-radius: 10px;
+    border-radius: 12px;
     cursor: pointer;
     transition: all 0.25s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 12px rgba(37, 117, 252, 0.3);
+    box-shadow: 0 4px 12px rgba(37,117,252,0.3);
 }
 .submit-btn:hover:not(:disabled) {
     background: linear-gradient(135deg, #1d63d1, #570ec4);
-    box-shadow: 0 6px 18px rgba(37, 117, 252, 0.45);
+    box-shadow: 0 6px 18px rgba(37,117,252,0.45);
 }
 .submit-btn:disabled {
     background: #adb5bd;
-    cursor: not-allowed;
 }
 
 .spinner {
-    border: 3px solid rgba(255, 255, 255, 0.3);
+    border: 3px solid rgba(255,255,255,0.3);
     border-radius: 50%;
     border-top: 3px solid #fff;
     width: 20px;
