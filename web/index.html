@@ -4,711 +4,98 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>آپلودر هوشمند آیکون کده</title>
-    <style>
-        @font-face {
-            font-family: 'Vazirmatn';
-            src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn-Regular.woff2') format('woff2');
-            font-weight: normal;
-            font-style: normal;
-            font-display: swap;
-        }
+    <link rel="stylesheet" href="style.css">
+    <script type="text/javascript" src="/eel.js"></script>
+    <!-- این خط را به سایر تگ‌های link در بخش head اضافه کنید -->
+    <link rel="manifest" href="manifest.json">
 
-        body {
-            font-family: 'Vazirmatn', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            background-attachment: fixed;
-            margin: 0;
-            padding: 20px;
-            color: #333;
-            -webkit-font-smoothing: antialiased;
-            min-height: 100vh;
-            position: relative;
-        }
+    <!-- این اسکریپت را قبل از تگ پایانی </head> قرار دهید -->
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js').then(registration => {
+                console.log('SW registered: ', registration);
+            }).catch(registrationError => {
+                console.log('SW registration failed: ', registrationError);
+            });
+        });
+    }
+    </script>
 
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: 
-                radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
-                radial-gradient(circle at 40% 80%, rgba(120, 219, 226, 0.3) 0%, transparent 50%);
-            pointer-events: none;
-            z-index: -1;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 
-                0 25px 50px rgba(0, 0, 0, 0.15),
-                0 10px 20px rgba(0, 0, 0, 0.1),
-                inset 0 1px 1px rgba(255, 255, 255, 0.3);
-            overflow: hidden;
-            position: relative;
-            animation: slideInUp 0.6s ease-out;
-        }
-
-        .container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-        }
-
-        .header {
-            background: linear-gradient(135deg, rgba(95, 114, 190, 0.8) 0%, rgba(153, 33, 232, 0.8) 100%);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            color: white;
-            padding: 25px 30px;
-            text-align: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            position: relative;
-        }
-
-        .header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
-            pointer-events: none;
-        }
-
-        .header h1 {
-            margin: 0;
-            font-size: 24px;
-            font-weight: 700;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-        }
-
-        form {
-            padding: 15px 30px 30px 30px;
-        }
-
-        .form-section {
-            margin-bottom: 20px;
-            padding: 25px;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 
-                0 8px 25px rgba(0, 0, 0, 0.1),
-                inset 0 1px 1px rgba(255, 255, 255, 0.2);
-            position: relative;
-            transition: all 0.3s ease;
-        }
-
-        .form-section:hover {
-            background: rgba(255, 255, 255, 0.15);
-            transform: translateY(-2px);
-            box-shadow: 
-                0 12px 35px rgba(0, 0, 0, 0.15),
-                inset 0 1px 1px rgba(255, 255, 255, 0.3);
-        }
-
-        .form-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            border-radius: 16px 16px 0 0;
-        }
-
-        .form-section:last-of-type {
-            margin-bottom: 15px;
-        }
-
-        .form-section h2 {
-            font-size: 18px;
-            color: rgba(52, 58, 64, 0.9);
-            margin-top: 0;
-            margin-bottom: 20px;
-            font-weight: 700;
-            text-shadow: 0 1px 3px rgba(255, 255, 255, 0.5);
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 8px;
-            font-size: 14px;
-            color: rgba(73, 80, 87, 0.9);
-            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
-        }
-
-        .form-group input[type="text"],
-        .form-group textarea {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 12px;
-            box-sizing: border-box;
-            transition: all 0.3s ease;
-            font-family: 'Vazirmatn', sans-serif;
-            font-size: 15px;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            color: #333;
-            box-shadow: 
-                inset 0 2px 5px rgba(0, 0, 0, 0.1),
-                0 1px 1px rgba(255, 255, 255, 0.3);
-        }
-
-        .form-group input[type="text"]:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: rgba(153, 33, 232, 0.6);
-            background: rgba(255, 255, 255, 0.3);
-            box-shadow: 
-                0 0 0 3px rgba(153, 33, 232, 0.15),
-                inset 0 2px 5px rgba(0, 0, 0, 0.1),
-                0 5px 15px rgba(153, 33, 232, 0.2);
-            transform: translateY(-1px);
-        }
-
-        .form-group select {
-            width: 100%;
-            padding: 18px 55px 18px 20px;
-            border: 2px solid rgba(255, 255, 255, 0.4);
-            border-radius: 20px;
-            box-sizing: border-box;
-            transition: all 0.4s ease;
-            font-family: 'Vazirmatn', sans-serif;
-            font-size: 16px;
-            font-weight: 600;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.15));
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            color: #2c3e50;
-            cursor: pointer;
-            box-shadow: 
-                0 10px 30px rgba(0, 0, 0, 0.15),
-                inset 0 1px 2px rgba(255, 255, 255, 0.5);
-            appearance: none;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            position: relative;
-        }
-
-        .select-wrapper {
-            position: relative;
-            display: inline-block;
-            width: 100%;
-        }
-
-        .select-wrapper::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 20px;
-            transform: translateY(-50%);
-            width: 0;
-            height: 0;
-            border-left: 8px solid transparent;
-            border-right: 8px solid transparent;
-            border-top: 10px solid #2c3e50;
-            pointer-events: none;
-            transition: all 0.3s ease;
-        }
-
-        .select-wrapper:hover::after {
-            border-top-color: #9921e8;
-        }
-
-        .form-group select:focus {
-            outline: none;
-            border-color: rgba(153, 33, 232, 0.9);
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.2));
-            box-shadow: 
-                0 0 0 4px rgba(153, 33, 232, 0.25),
-                0 15px 40px rgba(153, 33, 232, 0.3),
-                inset 0 1px 2px rgba(255, 255, 255, 0.6);
-            transform: translateY(-3px);
-        }
-
-        .form-group select:hover {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.2));
-            border-color: rgba(153, 33, 232, 0.6);
-            transform: translateY(-2px);
-            box-shadow: 
-                0 12px 35px rgba(0, 0, 0, 0.2),
-                inset 0 1px 2px rgba(255, 255, 255, 0.5);
-        }
-
-        .form-group .ltr { 
-            direction: ltr; 
-            text-align: left; 
-        }
-
-        .file-area { 
-            position: relative; 
-            width: 100%; 
-        }
-
-        .file-area input[type=file] { 
-            position: absolute; 
-            width: 100%; 
-            height: 100%; 
-            top: 0; 
-            left: 0; 
-            opacity: 0; 
-            cursor: pointer; 
-        }
-
-        .file-dummy { 
-            width: 100%; 
-            box-sizing: border-box; 
-            padding: 30px; 
-            background: rgba(248, 249, 250, 0.15);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 2px dashed rgba(255, 255, 255, 0.4);
-            text-align: center; 
-            border-radius: 12px; 
-            transition: all 0.3s ease; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center;
-            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.1);
-            position: relative;
-        }
-
-        .file-dummy.file-selected {
-            background: rgba(40, 167, 69, 0.2);
-            border-color: rgba(40, 167, 69, 0.6);
-            border-style: solid;
-        }
-
-        .file-dummy.file-selected .file-text {
-            color: rgba(21, 87, 36, 0.9);
-            font-weight: 600;
-        }
-
-        .file-dummy .success-icon {
-            display: none;
-            margin-left: 10px;
-            color: #28a745;
-            font-size: 20px;
-            animation: checkmark 0.5s ease-in-out;
-        }
-
-        .file-dummy.file-selected .success-icon {
-            display: inline-block;
-        }
-
-        .file-area:hover .file-dummy { 
-            background: rgba(248, 249, 250, 0.25);
-            border-color: rgba(153, 33, 232, 0.6);
-            transform: translateY(-2px);
-            box-shadow: 
-                inset 0 2px 10px rgba(0, 0, 0, 0.1),
-                0 8px 25px rgba(153, 33, 232, 0.15);
-        }
-
-        .file-dummy .file-text { 
-            color: rgba(108, 117, 125, 0.9); 
-            font-weight: 500;
-            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
-        }
-
-        .ai-section { 
-            padding: 25px;
-            text-align: center; 
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            margin-top: 35px;
-            margin-bottom: 35px;
-            box-shadow: 
-                0 8px 25px rgba(0, 0, 0, 0.1),
-                inset 0 1px 1px rgba(255, 255, 255, 0.2);
-            position: relative;
-        }
-
-        .ai-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            border-radius: 16px 16px 0 0;
-        }
-
-        .ai-btn { 
-            padding: 12px 25px; 
-            font-size: 16px; 
-            font-weight: bold; 
-            color: #fff; 
-            background: linear-gradient(135deg, rgba(255, 126, 95, 0.9), rgba(254, 180, 123, 0.9));
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 12px; 
-            cursor: pointer; 
-            transition: all 0.3s ease; 
-            display: inline-flex; 
-            align-items: center; 
-            gap: 10px; 
-            box-shadow: 
-                0 8px 25px rgba(254, 180, 123, 0.4),
-                inset 0 1px 1px rgba(255, 255, 255, 0.3);
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-        }
-
-        .ai-btn:hover:not(:disabled) { 
-            transform: translateY(-3px); 
-            box-shadow: 
-                0 12px 35px rgba(254, 180, 123, 0.6),
-                inset 0 1px 1px rgba(255, 255, 255, 0.4);
-            background: linear-gradient(135deg, rgba(255, 126, 95, 1), rgba(254, 180, 123, 1));
-        }
-
-        .ai-btn:disabled { 
-            background: rgba(233, 236, 239, 0.3);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            color: rgba(173, 181, 189, 0.8); 
-            cursor: not-allowed; 
-            box-shadow: none; 
-            transform: none; 
-        }
-
-        .magic-icon { 
-            display: inline-block; 
-            transition: transform 0.3s; 
-        }
-
-        .ai-btn:hover:not(:disabled) .magic-icon { 
-            transform: rotate(25deg) scale(1.2); 
-        }
-
-        .status-bar { 
-            padding: 12px; 
-            border-radius: 12px; 
-            margin-top: 20px; 
-            text-align: center; 
-            transition: all 0.3s; 
-            font-weight: 500;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 
-                0 4px 15px rgba(0, 0, 0, 0.1),
-                inset 0 1px 1px rgba(255, 255, 255, 0.3);
-            display: none;
-        }
-
-        .status-bar.success { 
-            background: rgba(209, 231, 221, 0.8);
-            color: #0f5132; 
-            border-color: rgba(25, 135, 84, 0.3);
-        }
-
-        .status-bar.error { 
-            background: rgba(248, 215, 218, 0.8);
-            color: #842029; 
-            border-color: rgba(220, 53, 69, 0.3);
-        }
-
-        .status-bar.info { 
-            background: rgba(207, 244, 252, 0.8);
-            color: #055160; 
-            border-color: rgba(13, 202, 240, 0.3);
-        }
-
-        .submit-btn { 
-            width: 100%; 
-            padding: 15px; 
-            font-size: 16px; 
-            font-weight: bold; 
-            color: white; 
-            background: linear-gradient(135deg, rgba(0, 123, 255, 0.9), rgba(0, 86, 179, 0.9));
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 12px; 
-            cursor: pointer; 
-            transition: all 0.3s ease; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center;
-            box-shadow: 
-                0 8px 25px rgba(0, 123, 255, 0.3),
-                inset 0 1px 1px rgba(255, 255, 255, 0.3);
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-        }
-
-        .submit-btn:hover:not(:disabled) { 
-            background: linear-gradient(135deg, rgba(0, 123, 255, 1), rgba(0, 86, 179, 1));
-            transform: translateY(-2px);
-            box-shadow: 
-                0 12px 35px rgba(0, 123, 255, 0.4),
-                inset 0 1px 1px rgba(255, 255, 255, 0.4);
-        }
-
-        .submit-btn:disabled { 
-            background: rgba(173, 181, 189, 0.3);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            cursor: not-allowed; 
-            box-shadow: 
-                inset 0 2px 5px rgba(0, 0, 0, 0.1),
-                0 1px 1px rgba(255, 255, 255, 0.2);
-            transform: none;
-        }
-
-        .spinner { 
-            border: 3px solid rgba(255, 255, 255, 0.3); 
-            border-radius: 50%; 
-            border-top: 3px solid #fff; 
-            width: 20px; 
-            height: 20px; 
-            animation: spin 1s linear infinite; 
-            margin-left: 10px; 
-        }
-
-        @keyframes spin { 
-            0% { transform: rotate(0deg); } 
-            100% { transform: rotate(360deg); } 
-        }
-
-        @keyframes slideInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes pulse {
-            0% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.02);
-                box-shadow: 0 0 0 10px rgba(40, 167, 69, 0.3);
-            }
-            100% {
-                transform: scale(1);
-            }
-        }
-
-        @keyframes checkmark {
-            0% {
-                opacity: 0;
-                transform: scale(0.3);
-            }
-            50% {
-                opacity: 1;
-                transform: scale(1.2);
-            }
-            100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-    </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🚀 آپلودر هوشمند آیکون کده</h1>
         </div>
-        
-        <form id="iconForm">
+        <form id="upload-form">
             <div class="form-section">
                 <h2>۱. انتخاب فایل و نام انگلیسی</h2>
-                
-                <div class="form-group">
-                    <label>یک فایل SVG را انتخاب کنید یا اینجا بکشید</label>
-                    <div class="file-area">
-                        <input type="file" accept=".svg" id="svgFileInput" name="svgFile" />
-                        <div class="file-dummy" id="fileDummy">
-                            <div class="file-text" id="fileText">📁 فایل SVG خود را اینجا بکشید یا کلیک کنید</div>
-                            <span class="success-icon">✓</span>
-                        </div>
+                 <div class="form-group file-area">
+                    <input type="file" id="ik_svg_file" class="required" accept=".svg">
+                    <div class="file-dummy">
+                        <span class="file-text">یک فایل SVG را انتخاب کنید یا اینجا بکشید</span>
                     </div>
                 </div>
-
                 <div class="form-group">
-                    <label>نام انگلیسی (راهنمای هوش مصنوعی)</label>
-                    <input type="text" id="englishName" name="englishName" class="ltr" placeholder="مثال: search, home, trash" />
-                </div>
-
-                <div class="ai-section">
-                    <button type="button" class="ai-btn" id="generateBtn">
-                        <span class="magic-icon">✨</span>
-                        تولید با هوش مصنوعی
-                    </button>
-                    <div class="status-bar" id="statusBar"></div>
+                    <label for="ik_icon_name">نام انگلیسی (راهنمای هوش مصنوعی)</label>
+                    <input type="text" id="ik_icon_name" class="ltr required" placeholder="مثال: search, home, trash">
                 </div>
             </div>
 
-            <div class="form-section">
-                <h2>انتخاب مدل هوش مصنوعی</h2>
-                <div class="form-group">
-                    <div class="select-wrapper">
-                        <select id="aiModel" name="aiModel">
-                            <option value="">در حال بارگذاری...</option>
-                        </select>
-                    </div>
-                </div>
+            <div class="ai-section">
+                <button type="button" class="ai-btn" id="generate-ai-btn" disabled>
+                    <span class="ai-btn-text">تولید با هوش مصنوعی</span>
+                    <span class="magic-icon">🪄</span>
+                </button>
             </div>
 
             <div class="form-section">
+            <div class="form-group" style="margin-top: -15px;">
+                <label for="ik_ai_model">انتخاب مدل هوش مصنوعی</label>
+                <select id="ik_ai_model" class="form-control">
+                    <option value="gemini-2.5-pro">Gemini 2.5 Pro 🧠</option>
+                    <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash👌</option>
+                    <option value="gemini-2.5-flash-lite">Gemini 2.5 flash lite ☺️</option>
+                    <option value="gemini-2.0-flash">Gemini 2.0 Flash 😎(Latest)</option>
+                </select>
+            </div>
                 <h2>۲. تکمیل اطلاعات</h2>
-                
                 <div class="form-group">
-                    <label>عنوان کامل آیکون</label>
-                    <input type="text" id="iconTitle" name="iconTitle" placeholder="توسط هوش مصنوعی تولید می‌شود..." />
+                    <label for="ik_title">عنوان کامل آیکون</label>
+                    <input type="text" id="ik_title" class="required" placeholder="توسط هوش مصنوعی تولید می‌شود...">
                 </div>
-                
                 <div class="form-group">
-                    <label>توضیحات آیکون</label>
-                    <textarea rows="4" id="iconDescription" name="iconDescription" placeholder="توسط هوش مصنوعی تولید می‌شود..."></textarea>
+                    <label for="ik_description">توضیحات آیکون</label>
+                    <textarea id="ik_description" class="required" rows="5" placeholder="توسط هوش مصنوعی تولید می‌شود..."></textarea>
                 </div>
-                
                 <div class="form-group">
-                    <label>دسته‌بندی</label>
-                    <div class="select-wrapper">
-                        <select id="category" name="category">
-                            <option value="">در حال بارگذاری...</option>
-                        </select>
-                    </div>
+                    <label for="ik_category">دسته‌بندی</label>
+                    <select id="ik_category" class="required">
+                        <option value="">در حال بارگذاری...</option>
+                    </select>
                 </div>
-                
                 <div class="form-group">
-                    <label>برچسب‌ها (جدا با کاما)</label>
-                    <input type="text" id="tags" name="tags" placeholder="..." />
+                    <label for="ik_tags">برچسب‌ها (جدا با کاما)</label>
+                    <input type="text" id="ik_tags" placeholder="خانه, سایت, رابط کاربری">
                 </div>
-                
                 <div class="form-group">
-                    <label>جایگزین سایت، رابط کاربری</label>
-                    <input type="text" id="alternatives" name="alternatives" placeholder="..." />
-                </div>
-                
-                <div class="form-group">
-                    <label>لایسنس</label>
-                    <div class="select-wrapper">
-                        <select id="license" name="license">
-                            <option value="">در حال بارگذاری...</option>
-                        </select>
-                    </div>
+                    <label for="ik_license">لایسنس</label>
+                    <select id="ik_license">
+                        <option>Apache License 2.0</option>
+                        <option>MIT License</option>
+                    </select>
                 </div>
             </div>
+            
+            <div class="status-bar" id="status-bar">برای شروع، یک فایل SVG و نام انگلیسی آن را وارد کنید.</div>
 
-            <div style="text-align: center; margin: 30px 0; font-size: 14px; color: rgba(108, 117, 125, 0.8);">
-                برای شروع، یک فایل SVG و نام انگلیسی آن را وارد کنید.
-            </div>
-
-            <button type="submit" class="submit-btn" id="submitBtn">
-                ⭐ ساخت و تنظیل آیکون
+            <button type="submit" class="submit-btn" id="submit-btn" disabled>
+                <span class="btn-text">✨ ساخت و انتشار آیکون</span>
+                <div class="spinner" style="display: none;"></div>
             </button>
         </form>
     </div>
-
-    <script>
-        // متغیرهای سراسری
-        let selectedFile = null;
-        let aiModels = [];
-        let categories = [];
-        let licenses = [];
-
-        // تابع بارگذاری اولیه
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeForm();
-            setupFileUploader();
-            setupAIGeneration();
-            setupFormSubmission();
-        });
-
-        // تابع مقداردهی اولیه فرم
-        async function initializeForm() {
-            try {
-                // بارگذاری مدل‌های هوش مصنوعی
-                await loadAIModels();
-                
-                // بارگذاری دسته‌بندی‌ها
-                await loadCategories();
-                
-                // بارگذاری لایسنس‌ها
-                await loadLicenses();
-                
-            } catch (error) {
-                console.error('خطا در بارگذاری اولیه:', error);
-                showStatus('خطا در بارگذاری اولیه اطلاعات', 'error');
-            }
-        }
-
-        // تابع بارگذاری مدل‌های هوش مصنوعی
-        async function loadAIModels() {
-            try {
-                // شبیه‌سازی درخواست API
-                // در کد واقعی، این را با درخواست AJAX به سرور جایگزین کنید
-                aiModels = [
-                    { id: 'gemini-2.5-flash', name: '🔥 Gemini 2.5 Flash', default: true },
-                    { id: 'gpt-4', name: '🤖 GPT-4', default: false },
-                    { id: 'claude-3', name: '🧠 Claude 3', default: false }
-                ];
-                
-                populateSelect('aiModel', aiModels);
-            } catch (error) {
-                console.error('خطا در بارگذاری مدل‌های AI:', error);
-            }
-        }
-
-        // تابع بارگذاری دسته‌بندی‌ها
-        async function loadCategories() {
-            try {
-                // شبیه‌سازی درخواست API
-                categories = [
-                    { id: 'ui-ux', name: 'رابط کاربری و تجربه کاربری' },
-                    { id: 'technology', name: 'فناوری' },
-                    { id: 'business', name: 'کسب و کار' },
-                    { id: 'social', name: 'شبکه‌های اجتماعی' },
-                    { id: 'media', name: 'رسانه' },
-                    { id: 'navigation', name: 'ناوبری' }
-                ];
-                
-                populateSelect('category', categories, 'یک دسته‌بندی انتخاب کنید');
-            } catch (error) {
-                console.error('خطا در بارگذاری دسته‌بندی‌ها:', error);
-            }
-        }
-
-        // تابع بارگذاری لایسنس‌ها
-        async function loadLicenses() {
-            try {
-                // شبیه‌ساز
+    <script src="script.js"></script>
+</body>
+</html>
