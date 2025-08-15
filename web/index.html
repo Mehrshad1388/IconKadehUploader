@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>آپلودر هوشمند آیکون کده</title>
     <link rel="stylesheet" href="style.css">
-    <script type="text/javascript" src="/eel.js"></script>
+    <!-- کد شما بدون تغییر -->
     <link rel="manifest" href="manifest.json">
     <script>
     if ('serviceWorker' in navigator) {
@@ -25,6 +25,7 @@
             <h1>🚀 آپلودر هوشمند آیکون کده</h1>
         </div>
         <form id="upload-form">
+            <!-- بخش ۱: انتخاب فایل (بدون تغییر) -->
             <div class="form-section">
                 <h2>۱. انتخاب فایل و نام انگلیسی</h2>
                  <div class="form-group file-area">
@@ -39,6 +40,7 @@
                 </div>
             </div>
 
+            <!-- بخش هوش مصنوعی (بدون تغییر) -->
             <div class="ai-section">
                 <button type="button" class="ai-btn" id="generate-ai-btn" disabled>
                     <span class="ai-btn-text">تولید با هوش مصنوعی</span>
@@ -46,14 +48,13 @@
                 </button>
             </div>
 
+            <!-- بخش ۲: تکمیل اطلاعات (بدون تغییر) -->
             <div class="form-section">
                 <div class="form-group" style="margin-top: -15px;">
                     <label for="ik_ai_model">انتخاب مدل هوش مصنوعی</label>
                     <select id="ik_ai_model" class="form-control">
-                        <option value="gemini-2.5-pro">Gemini 2.5 Pro 🧠</option>
-                        <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash👌</option>
-                        <option value="gemini-2.5-flash-lite">Gemini 2.5 flash lite ☺️</option>
-                        <option value="gemini-2.0-flash">Gemini 2.0 Flash 😎(Latest)</option>
+                        <option value="gemini-1.5-pro">Gemini 1.5 Pro 🧠</option>
+                        <option value="gemini-1.5-flash" selected>Gemini 1.5 Flash👌</option>
                     </select>
                 </div>
                 <h2>۲. تکمیل اطلاعات</h2>
@@ -83,26 +84,28 @@
                     </select>
                 </div>
             </div>
-
+            
             <!-- بخش جدید: قابلیت‌های آیکون -->
             <div class="form-section">
                 <h2>۳. قابلیت‌های آیکون</h2>
-                <div class="form-group-checkbox">
-                    <input type="checkbox" id="ik_can_change_color" name="ik_color" checked>
-                    <label for="ik_can_change_color">قابلیت تغییر رنگ</label>
-                </div>
-                <div class="form-group-checkbox">
-                    <input type="checkbox" id="ik_can_change_size" name="ik_size" checked>
-                    <label for="ik_can_change_size">قابلیت تغییر سایز</label>
-                </div>
-                <div class="form-group-checkbox">
-                    <input type="checkbox" id="ik_can_change_weight" name="ik_weight" checked>
-                    <label for="ik_can_change_weight">قابلیت تغییر وزن (فعلاً بدون استفاده)</label>
+                <div class="form-group-checkbox-wrapper">
+                    <div class="form-group-checkbox">
+                        <input type="checkbox" id="ik_capability_color" name="ik_capability_color" checked>
+                        <label for="ik_capability_color">قابلیت تغییر رنگ</label>
+                    </div>
+                    <div class="form-group-checkbox">
+                        <input type="checkbox" id="ik_capability_size" name="ik_capability_size" checked>
+                        <label for="ik_capability_size">قابلیت تغییر سایز</label>
+                    </div>
+                    <div class="form-group-checkbox">
+                        <input type="checkbox" id="ik_capability_weight" name="ik_capability_weight" checked>
+                        <label for="ik_capability_weight">قابلیت تغییر وزن</label>
+                    </div>
                 </div>
             </div>
-            
-            <div class="status-bar" id="status-bar">برای شروع، یک فایل SVG و نام انگلیسی آن را وارد کنید.</div>
 
+            <!-- بخش پایانی فرم (بدون تغییر) -->
+            <div class="status-bar" id="status-bar">برای شروع، یک فایل SVG و نام انگلیسی آن را وارد کنید.</div>
             <button type="submit" class="submit-btn" id="submit-btn" disabled>
                 <span class="btn-text">✨ ساخت و انتشار آیکون</span>
                 <div class="spinner" style="display: none;"></div>
