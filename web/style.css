@@ -104,33 +104,34 @@ form {
 .ai-btn:hover:not(:disabled) .magic-icon { transform: rotate(25deg) scale(1.2); }
 
 /* استایل‌های جدید برای چک‌باکس‌ها */
+.form-group-checkbox-wrapper {
+    display: flex;
+    gap: 25px;
+    width: 100%;
+    justify-content: flex-start;
+    align-items: center;
+    padding: 10px 0;
+}
+
 .form-group-checkbox {
     display: flex;
     align-items: center;
-    width: 100%;
-    margin-bottom: 12px;
-    background-color: #f8f9fa;
-    padding: 12px 15px;
-    border-radius: 8px;
-    border: 1px solid #e9ecef;
-    transition: border-color 0.2s;
+    gap: 8px;
 }
-.form-group-checkbox:hover {
-    border-color: #9921e8;
-}
+
 .form-group-checkbox input[type="checkbox"] {
-    margin-left: 10px;
     width: 18px;
     height: 18px;
     cursor: pointer;
     accent-color: #9921e8;
 }
+
 .form-group-checkbox label {
-    margin-bottom: 0;
     font-weight: 500;
+    font-size: 15px;
     color: #495057;
+    margin-bottom: 0;
     cursor: pointer;
-    flex-grow: 1;
 }
 
 .status-bar { padding: 12px; border-radius: 6px; margin-top: 20px; text-align: center; transition: all 0.3s; font-weight: 500; }
