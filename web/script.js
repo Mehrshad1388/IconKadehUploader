@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const titleInput = document.getElementById('ik_title');
     const descriptionInput = document.getElementById('ik_description');
 
-    // --- بارگذاری اولیه دسته‌بندی‌ها با fetch (بدون تغییر) ---
+    // --- بارگذاری اولیه دسته‌بندی‌ها (بدون تغییر) ---
     try {
         const response = await fetch('/api/get_categories');
         if (!response.ok) throw new Error('Network response was not ok');
@@ -57,13 +57,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    // --- منطق دکمه هوش مصنوعی با fetch (بدون تغییر) ---
+    // --- منطق دکمه هوش مصنوعی (بدون تغییر) ---
     aiBtn.addEventListener('click', async () => {
         const file = fileInput.files[0];
         if (!file) return;
 
         const selectedModel = document.getElementById('ik_ai_model').value;
-
         setAiButtonLoading(true);
         updateStatus('در حال ارسال درخواست به هوش مصنوعی...', 'info');
 
@@ -115,6 +114,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateStatus('در حال آماده‌سازی و آپلود فایل...', 'info');
 
         const formData = new FormData();
+        // افزودن اطلاعات قبلی
         formData.append('ik_title', titleInput.value);
         formData.append('ik_icon_name', englishNameInput.value);
         formData.append('ik_description', descriptionInput.value);
@@ -123,11 +123,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         formData.append('ik_license', document.getElementById('ik_license').value);
         formData.append('ik_svg_file', fileInput.files[0]);
 
-        // <<< بخش جدید: افزودن وضعیت چک‌باکس‌ها به درخواست >>>
-        // مقدار true/false را به صورت رشته متنی ارسال می‌کنیم
-        formData.append('ik_color', document.getElementById('ik_can_change_color').checked);
-        formData.append('ik_size', document.getElementById('ik_can_change_size').checked);
-        formData.append('ik_weight', document.getElementById('ik_can_change_weight').checked);
+        // *** بخش جدید: افزودن وضعیت چک‌باکس‌ها به درخواست ***
+        formData.append('ik_capability_color', document.getElementById('ik_capability_color').checked);
+        formData.append('ik_capability_size', document.getElementById('ik_capability_size').checked);
+        formData.append('ik_capability_weight', document.getElementById('ik_capability_weight').checked);
 
         try {
             const response = await fetch('/api/upload_icon', {
@@ -140,10 +139,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (result.status === 'success') {
                 form.reset();
                 document.querySelector('.file-text').textContent = 'یک فایل SVG را انتخاب کنید یا اینجا بکشید';
-                // برگرداندن چک‌باکس‌ها به حالت پیش‌فرض (فعال)
-                document.getElementById('ik_can_change_color').checked = true;
-                document.getElementById('ik_can_change_size').checked = true;
-                document.getElementById('ik_can_change_weight').checked = true;
+                // برگرداندن چک‌باکس‌ها به حالت پیش‌فرض
+                document.getElementById('ik_capability_color').checked = true;
+                document.getElementById('ik_capability_size').checked = true;
+                document.getElementById('ik_capability_weight').checked = true;
                 checkAiButtonState();
                 checkSubmitButtonState();
             }
