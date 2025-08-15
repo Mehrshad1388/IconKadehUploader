@@ -10,15 +10,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const requiredInputs = document.querySelectorAll('.required');
     const titleInput = document.getElementById('ik_title');
     const descriptionInput = document.getElementById('ik_description');
-    
-    // --- المان‌های جدید برای کنترل ظاهر کادر آپلود ---
     const fileDummy = document.querySelector('.file-dummy');
     const fileText = document.querySelector('.file-text');
-    const originalFileText = fileText.textContent; // ذخیره متن اولیه
+    const originalFileText = fileText.textContent;
 
-    // --- بارگذاری اولیه دسته‌بندی‌ها (بدون تغییر) ---
+    // --- بارگذاری اولیه دسته‌بندی‌ها با Eel ---
     try {
-        // چون این بخش در eel.js مدیریت می‌شود، اینجا آن را به پایتون می‌سپاریم
         const categories = await eel.get_categories()();
         categorySelect.innerHTML = '<option value="">یک دسته‌بندی انتخاب کنید</option>';
         if (Object.keys(categories).length > 0) {
@@ -30,52 +27,42 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
     } catch (error) {
-        updateStatus('خطا در دریافت دسته‌بندی‌ها. لطفاً از اتصال به سرور مطمئن شوید.', 'error');
+        updateStatus('خطا در دریافت دسته‌بندی‌ها. از اجرای صحیح بک‌اند مطمئن شوید.', 'error');
     }
 
-    // --- تابع جدید برای مدیریت ظاهر کادر آپلود ---
+    // --- تابع مدیریت ظاهر کادر آپلود ---
     function handleFileSelection() {
         if (fileInput.files.length > 0) {
-            // اگر فایلی انتخاب شد
             fileDummy.classList.add('file-selected');
-            fileText.textContent = fileInput.files[0].name; // نمایش نام فایل
+            fileText.textContent = fileInput.files[0].name;
         } else {
-            // اگر فایلی انتخاب نشد (مثلا کاربر کنسل کرد)
             fileDummy.classList.remove('file-selected');
-            fileText.textContent = originalFileText; // بازگرداندن متن اولیه
+            fileText.textContent = originalFileText;
         }
     }
 
-    // --- توابع بررسی وضعیت دکمه‌ها (بدون تغییر) ---
+    // --- توابع بررسی وضعیت دکمه‌ها ---
     const checkAiButtonState = () => {
-        const fileSelected = fileInput.files.length > 0;
-        const nameEntered = englishNameInput.value.trim() !== '';
-        aiBtn.disabled = !(fileSelected && nameEntered);
+        aiBtn.disabled = !(fileInput.files.length > 0 && englishNameInput.value.trim() !== '');
     };
-
     const checkSubmitButtonState = () => {
-        let allFilled = true;
-        requiredInputs.forEach(input => {
-            if (input.value.trim() === '') allFilled = false;
-        });
-        submitBtn.disabled = !allFilled;
+        submitBtn.disabled = ![...requiredInputs].every(input => input.value.trim() !== '');
     };
 
     // --- افزودن Event Listener ها ---
-    fileInput.addEventListener('change', handleFileSelection); // اضافه شدن شنونده جدید
-
+    fileInput.addEventListener('change', handleFileSelection);
     [fileInput, englishNameInput, ...requiredInputs].forEach(input => {
         input.addEventListener('input', () => {
             checkAiButtonState();
             checkSubmitButtonState();
         });
-        input.addEventListener('change', () => {
+        input.addEventListener('change', () => { // برای select ها
             checkAiButtonState();
             checkSubmitButtonState();
         });
     });
 
-    // --- منطق دکمه هوش مصنوعی با eel.js ---
+    // --- منطق دکمه هوش مصنوعی با Eel ---
     aiBtn.addEventListener('click', async () => {
         const file = fileInput.files[0];
         if (!file) return;
@@ -97,9 +84,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     descriptionInput.value = result.data.description;
                     tagsInput.value = result.data.tags;
                     updateStatus('محتوا با موفقیت تولید شد.', 'success');
-                    // فعال کردن بررسی دکمه انتشار پس از پر شدن فیلدها
-                    titleInput.dispatchEvent(new Event('input'));
-                    descriptionInput.dispatchEvent(new Event('input'));
+                    [titleInput, descriptionInput].forEach(el => el.dispatchEvent(new Event('input')));
                 } else {
                     updateStatus(`خطا: ${result.message}`, 'error');
                 }
@@ -115,7 +100,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
     });
 
-    // --- منطق دکمه انتشار نهایی با eel.js ---
+    // --- منطق دکمه انتشار نهایی با Eel ---
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
         setSubmitButtonLoading(true);
@@ -146,7 +131,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 if (result.status === 'success') {
                     form.reset();
-                    // بازگرداندن ظاهر کادر آپلود به حالت اولیه
+                    document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
                     fileDummy.classList.remove('file-selected');
                     fileText.textContent = originalFileText;
                     checkAiButtonState();
@@ -160,7 +145,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
     });
     
-    // --- توابع کمکی (بدون تغییر) ---
+    // --- توابع کمکی ---
     function setAiButtonLoading(isLoading) {
         const btnText = aiBtn.querySelector('.ai-btn-text');
         aiBtn.disabled = isLoading;
@@ -179,9 +164,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const statusBar = document.getElementById('status-bar');
         statusBar.textContent = message;
         statusBar.className = 'status-bar';
-        if (type) {
-            statusBar.classList.add(type);
-        }
+        if (type) statusBar.classList.add(type);
     }
     
     checkAiButtonState();
