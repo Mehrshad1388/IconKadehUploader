@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    // --- انتخاب تمام المان‌های لازم ---
+    // --- انتخاب تمام المان‌های لازم (بدون تغییر) ---
     const form = document.getElementById('upload-form');
     const categorySelect = document.getElementById('ik_category');
     const fileInput = document.getElementById('ik_svg_file');
@@ -10,13 +10,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const requiredInputs = document.querySelectorAll('.required');
     const titleInput = document.getElementById('ik_title');
     const descriptionInput = document.getElementById('ik_description');
-    const fileDummy = document.querySelector('.file-dummy');
-    const fileText = document.querySelector('.file-text');
-    const originalFileText = fileText.textContent;
 
-    // --- بارگذاری اولیه دسته‌بندی‌ها با Eel ---
+    // --- بارگذاری اولیه دسته‌بندی‌ها با fetch (بدون تغییر) ---
     try {
-        const categories = await eel.get_categories()();
+        const response = await fetch('/api/get_categories');
+        if (!response.ok) throw new Error('Network response was not ok');
+        const categories = await response.json();
+        
         categorySelect.innerHTML = '<option value="">یک دسته‌بندی انتخاب کنید</option>';
         if (Object.keys(categories).length > 0) {
             for (const id in categories) {
@@ -27,47 +27,43 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
     } catch (error) {
-        updateStatus('خطا در دریافت دسته‌بندی‌ها. از اجرای صحیح بک‌اند مطمئن شوید.', 'error');
+        updateStatus('خطا در دریافت دسته‌بندی‌ها از سایت.', 'error');
     }
 
-    // --- تابع مدیریت ظاهر کادر آپلود ---
-    function handleFileSelection() {
-        if (fileInput.files.length > 0) {
-            fileDummy.classList.add('file-selected');
-            fileText.textContent = fileInput.files[0].name;
-        } else {
-            fileDummy.classList.remove('file-selected');
-            fileText.textContent = originalFileText;
-        }
-    }
-
-    // --- توابع بررسی وضعیت دکمه‌ها ---
+    // --- توابع بررسی وضعیت دکمه‌ها (بدون تغییر) ---
     const checkAiButtonState = () => {
-        aiBtn.disabled = !(fileInput.files.length > 0 && englishNameInput.value.trim() !== '');
-    };
-    const checkSubmitButtonState = () => {
-        submitBtn.disabled = ![...requiredInputs].every(input => input.value.trim() !== '');
+        const fileSelected = fileInput.files.length > 0;
+        const nameEntered = englishNameInput.value.trim() !== '';
+        aiBtn.disabled = !(fileSelected && nameEntered);
     };
 
-    // --- افزودن Event Listener ها ---
-    fileInput.addEventListener('change', handleFileSelection);
+    const checkSubmitButtonState = () => {
+        let allFilled = true;
+        requiredInputs.forEach(input => {
+            if (input.value.trim() === '') allFilled = false;
+        });
+        submitBtn.disabled = !allFilled;
+    };
+
+    // --- افزودن Event Listener ها (بدون تغییر) ---
     [fileInput, englishNameInput, ...requiredInputs].forEach(input => {
         input.addEventListener('input', () => {
             checkAiButtonState();
             checkSubmitButtonState();
         });
-        input.addEventListener('change', () => { // برای select ها
+        input.addEventListener('change', () => {
             checkAiButtonState();
             checkSubmitButtonState();
         });
     });
 
-    // --- منطق دکمه هوش مصنوعی با Eel ---
+    // --- منطق دکمه هوش مصنوعی با fetch (بدون تغییر) ---
     aiBtn.addEventListener('click', async () => {
         const file = fileInput.files[0];
         if (!file) return;
 
         const selectedModel = document.getElementById('ik_ai_model').value;
+
         setAiButtonLoading(true);
         updateStatus('در حال ارسال درخواست به هوش مصنوعی...', 'info');
 
@@ -76,20 +72,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         reader.onload = async () => {
             const base64Content = reader.result.split(',')[1];
             const fileInfo = { 'name': file.name, 'content': base64Content };
-            
+
             try {
-                const result = await eel.generate_ai_content(fileInfo, englishNameInput.value.trim(), selectedModel)();
+                const response = await fetch('/api/generate_ai_content', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        file_info: fileInfo,
+                        english_name: englishNameInput.value.trim(),
+                        model_name: selectedModel 
+                    })
+                });
+
+                const result = await response.json();
+
                 if (result.status === 'success') {
                     titleInput.value = result.data.title;
                     descriptionInput.value = result.data.description;
                     tagsInput.value = result.data.tags;
                     updateStatus('محتوا با موفقیت تولید شد.', 'success');
-                    [titleInput, descriptionInput].forEach(el => el.dispatchEvent(new Event('input')));
+                    titleInput.dispatchEvent(new Event('input'));
+                    descriptionInput.dispatchEvent(new Event('input'));
                 } else {
                     updateStatus(`خطا: ${result.message}`, 'error');
                 }
             } catch (error) {
-                updateStatus(`خطای ارتباط با پایتون: ${error}`, 'error');
+                updateStatus(`خطای شبکه در ارتباط با هوش مصنوعی: ${error}`, 'error');
             } finally {
                 setAiButtonLoading(false);
             }
@@ -100,52 +108,53 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
     });
 
-    // --- منطق دکمه انتشار نهایی با Eel ---
+    // --- منطق دکمه انتشار نهایی (تغییر یافته) ---
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
         setSubmitButtonLoading(true);
         updateStatus('در حال آماده‌سازی و آپلود فایل...', 'info');
 
-        const formData = {
-            'ik_title': titleInput.value,
-            'ik_icon_name': englishNameInput.value,
-            'ik_description': descriptionInput.value,
-            'ik_category': categorySelect.value,
-            'ik_tags': tagsInput.value,
-            'ik_license': document.getElementById('ik_license').value,
-            'color': document.getElementById('ik_can_change_color').checked,
-            'size': document.getElementById('ik_can_change_size').checked,
-            'weight': document.getElementById('ik_can_change_weight').checked
-        };
+        const formData = new FormData();
+        formData.append('ik_title', titleInput.value);
+        formData.append('ik_icon_name', englishNameInput.value);
+        formData.append('ik_description', descriptionInput.value);
+        formData.append('ik_category', categorySelect.value);
+        formData.append('ik_tags', tagsInput.value);
+        formData.append('ik_license', document.getElementById('ik_license').value);
+        formData.append('ik_svg_file', fileInput.files[0]);
 
-        const file = fileInput.files[0];
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = async () => {
-            const base64Content = reader.result.split(',')[1];
-            const fileInfo = { 'name': file.name, 'content': base64Content };
+        // <<< بخش جدید: افزودن وضعیت چک‌باکس‌ها به درخواست >>>
+        // مقدار true/false را به صورت رشته متنی ارسال می‌کنیم
+        formData.append('ik_color', document.getElementById('ik_can_change_color').checked);
+        formData.append('ik_size', document.getElementById('ik_can_change_size').checked);
+        formData.append('ik_weight', document.getElementById('ik_can_change_weight').checked);
 
-            try {
-                const result = await eel.upload_icon(formData, fileInfo)();
-                updateStatus(result.message, result.status);
+        try {
+            const response = await fetch('/api/upload_icon', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            updateStatus(result.message, result.status);
 
-                if (result.status === 'success') {
-                    form.reset();
-                    document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
-                    fileDummy.classList.remove('file-selected');
-                    fileText.textContent = originalFileText;
-                    checkAiButtonState();
-                    checkSubmitButtonState();
-                }
-            } catch (error) {
-                updateStatus(`خطای ارتباط با پایتون هنگام آپلود: ${error}`, 'error');
-            } finally {
-                setSubmitButtonLoading(false);
+            if (result.status === 'success') {
+                form.reset();
+                document.querySelector('.file-text').textContent = 'یک فایل SVG را انتخاب کنید یا اینجا بکشید';
+                // برگرداندن چک‌باکس‌ها به حالت پیش‌فرض (فعال)
+                document.getElementById('ik_can_change_color').checked = true;
+                document.getElementById('ik_can_change_size').checked = true;
+                document.getElementById('ik_can_change_weight').checked = true;
+                checkAiButtonState();
+                checkSubmitButtonState();
             }
-        };
+        } catch (error) {
+            updateStatus(`خطای شبکه هنگام آپلود: ${error}`, 'error');
+        } finally {
+            setSubmitButtonLoading(false);
+        }
     });
     
-    // --- توابع کمکی ---
+    // --- توابع کمکی (بدون تغییر) ---
     function setAiButtonLoading(isLoading) {
         const btnText = aiBtn.querySelector('.ai-btn-text');
         aiBtn.disabled = isLoading;
@@ -164,7 +173,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const statusBar = document.getElementById('status-bar');
         statusBar.textContent = message;
         statusBar.className = 'status-bar';
-        if (type) statusBar.classList.add(type);
+        if (type) {
+            statusBar.classList.add(type);
+        }
     }
     
     checkAiButtonState();
