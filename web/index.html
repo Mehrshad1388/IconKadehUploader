@@ -30,7 +30,6 @@
                  <div class="form-group file-area">
                     <input type="file" id="ik_svg_file" class="required" accept=".svg">
                     <div class="file-dummy">
-                        <span class="file-icon">📂</span>
                         <span class="file-text">یک فایل SVG را انتخاب کنید یا اینجا بکشید</span>
                     </div>
                 </div>
@@ -42,19 +41,21 @@
 
             <div class="ai-section">
                 <button type="button" class="ai-btn" id="generate-ai-btn" disabled>
-                    <span class="magic-icon">🪄</span>
                     <span class="ai-btn-text">تولید با هوش مصنوعی</span>
+                    <span class="magic-icon">🪄</span>
                 </button>
-                 <div class="form-group ai-model-selector">
-                    <label for="ik_ai_model">مدل هوش مصنوعی</label>
-                    <select id="ik_ai_model">
-                        <option value="gemini-1.5-pro-latest">Gemini 1.5 Pro</option>
-                        <option value="gemini-1.5-flash-latest" selected>Gemini 1.5 Flash</option>
-                    </select>
-                </div>
             </div>
 
             <div class="form-section">
+                <div class="form-group" style="margin-top: -15px;">
+                    <label for="ik_ai_model">انتخاب مدل هوش مصنوعی</label>
+                    <select id="ik_ai_model" class="form-control">
+                        <option value="gemini-2.5-pro">Gemini 2.5 Pro 🧠</option>
+                        <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash👌</option>
+                        <option value="gemini-2.5-flash-lite">Gemini 2.5 flash lite ☺️</option>
+                        <option value="gemini-2.0-flash">Gemini 2.0 Flash 😎(Latest)</option>
+                    </select>
+                </div>
                 <h2>۲. تکمیل اطلاعات</h2>
                 <div class="form-group">
                     <label for="ik_title">عنوان کامل آیکون</label>
@@ -62,19 +63,17 @@
                 </div>
                 <div class="form-group">
                     <label for="ik_description">توضیحات آیکون</label>
-                    <textarea id="ik_description" class="required" rows="4" placeholder="توسط هوش مصنوعی تولید می‌شود..."></textarea>
+                    <textarea id="ik_description" class="required" rows="5" placeholder="توسط هوش مصنوعی تولید می‌شود..."></textarea>
                 </div>
-                <div class="form-group-row">
-                    <div class="form-group">
-                        <label for="ik_category">دسته‌بندی</label>
-                        <select id="ik_category" class="required">
-                            <option value="">در حال بارگذاری...</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="ik_tags">برچسب‌ها (جدا با کاما)</label>
-                        <input type="text" id="ik_tags" placeholder="خانه, سایت, رابط کاربری">
-                    </div>
+                <div class="form-group">
+                    <label for="ik_category">دسته‌بندی</label>
+                    <select id="ik_category" class="required">
+                        <option value="">در حال بارگذاری...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="ik_tags">برچسب‌ها (جدا با کاما)</label>
+                    <input type="text" id="ik_tags" placeholder="خانه, سایت, رابط کاربری">
                 </div>
                 <div class="form-group">
                     <label for="ik_license">لایسنس</label>
@@ -85,22 +84,20 @@
                 </div>
             </div>
 
-            <!-- بخش جدید برای قابلیت‌های آیکون -->
+            <!-- بخش جدید: قابلیت‌های آیکون -->
             <div class="form-section">
                 <h2>۳. قابلیت‌های آیکون</h2>
-                <div class="checkbox-container">
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="ik_can_change_color" name="color" checked>
-                        <label for="ik_can_change_color">قابلیت تغییر رنگ</label>
-                    </div>
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="ik_can_change_size" name="size" checked>
-                        <label for="ik_can_change_size">قابلیت تغییر سایز</label>
-                    </div>
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="ik_can_change_weight" name="weight" checked>
-                        <label for="ik_can_change_weight">قابلیت تغییر وزن</label>
-                    </div>
+                <div class="form-group-checkbox">
+                    <input type="checkbox" id="ik_can_change_color" name="ik_color" checked>
+                    <label for="ik_can_change_color">قابلیت تغییر رنگ</label>
+                </div>
+                <div class="form-group-checkbox">
+                    <input type="checkbox" id="ik_can_change_size" name="ik_size" checked>
+                    <label for="ik_can_change_size">قابلیت تغییر سایز</label>
+                </div>
+                <div class="form-group-checkbox">
+                    <input type="checkbox" id="ik_can_change_weight" name="ik_weight" checked>
+                    <label for="ik_can_change_weight">قابلیت تغییر وزن (فعلاً بدون استفاده)</label>
                 </div>
             </div>
             
