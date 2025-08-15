@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    // --- انتخاب تمام المان‌های لازم (بدون تغییر) ---
+    // --- انتخاب تمام المان‌های لازم ---
     const form = document.getElementById('upload-form');
     const categorySelect = document.getElementById('ik_category');
     const fileInput = document.getElementById('ik_svg_file');
@@ -10,13 +10,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     const requiredInputs = document.querySelectorAll('.required');
     const titleInput = document.getElementById('ik_title');
     const descriptionInput = document.getElementById('ik_description');
+    
+    // --- المان‌های جدید برای کنترل ظاهر کادر آپلود ---
+    const fileDummy = document.querySelector('.file-dummy');
+    const fileText = document.querySelector('.file-text');
+    const originalFileText = fileText.textContent; // ذخیره متن اولیه
 
-    // --- بارگذاری اولیه دسته‌بندی‌ها با fetch (بدون تغییر) ---
+    // --- بارگذاری اولیه دسته‌بندی‌ها (بدون تغییر) ---
     try {
-        const response = await fetch('/api/get_categories');
-        if (!response.ok) throw new Error('Network response was not ok');
-        const categories = await response.json();
-        
+        // چون این بخش در eel.js مدیریت می‌شود، اینجا آن را به پایتون می‌سپاریم
+        const categories = await eel.get_categories()();
         categorySelect.innerHTML = '<option value="">یک دسته‌بندی انتخاب کنید</option>';
         if (Object.keys(categories).length > 0) {
             for (const id in categories) {
@@ -27,7 +30,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
     } catch (error) {
-        updateStatus('خطا در دریافت دسته‌بندی‌ها از سایت.', 'error');
+        updateStatus('خطا در دریافت دسته‌بندی‌ها. لطفاً از اتصال به سرور مطمئن شوید.', 'error');
+    }
+
+    // --- تابع جدید برای مدیریت ظاهر کادر آپلود ---
+    function handleFileSelection() {
+        if (fileInput.files.length > 0) {
+            // اگر فایلی انتخاب شد
+            fileDummy.classList.add('file-selected');
+            fileText.textContent = fileInput.files[0].name; // نمایش نام فایل
+        } else {
+            // اگر فایلی انتخاب نشد (مثلا کاربر کنسل کرد)
+            fileDummy.classList.remove('file-selected');
+            fileText.textContent = originalFileText; // بازگرداندن متن اولیه
+        }
     }
 
     // --- توابع بررسی وضعیت دکمه‌ها (بدون تغییر) ---
@@ -45,7 +61,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         submitBtn.disabled = !allFilled;
     };
 
-    // --- افزودن Event Listener ها (بدون تغییر) ---
+    // --- افزودن Event Listener ها ---
+    fileInput.addEventListener('change', handleFileSelection); // اضافه شدن شنونده جدید
+
     [fileInput, englishNameInput, ...requiredInputs].forEach(input => {
         input.addEventListener('input', () => {
             checkAiButtonState();
@@ -57,13 +75,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    // --- منطق دکمه هوش مصنوعی با fetch (بدون تغییر) ---
+    // --- منطق دکمه هوش مصنوعی با eel.js ---
     aiBtn.addEventListener('click', async () => {
         const file = fileInput.files[0];
         if (!file) return;
 
         const selectedModel = document.getElementById('ik_ai_model').value;
-
         setAiButtonLoading(true);
         updateStatus('در حال ارسال درخواست به هوش مصنوعی...', 'info');
 
@@ -72,32 +89,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         reader.onload = async () => {
             const base64Content = reader.result.split(',')[1];
             const fileInfo = { 'name': file.name, 'content': base64Content };
-
+            
             try {
-                const response = await fetch('/api/generate_ai_content', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        file_info: fileInfo,
-                        english_name: englishNameInput.value.trim(),
-                        model_name: selectedModel 
-                    })
-                });
-
-                const result = await response.json();
-
+                const result = await eel.generate_ai_content(fileInfo, englishNameInput.value.trim(), selectedModel)();
                 if (result.status === 'success') {
                     titleInput.value = result.data.title;
                     descriptionInput.value = result.data.description;
                     tagsInput.value = result.data.tags;
                     updateStatus('محتوا با موفقیت تولید شد.', 'success');
+                    // فعال کردن بررسی دکمه انتشار پس از پر شدن فیلدها
                     titleInput.dispatchEvent(new Event('input'));
                     descriptionInput.dispatchEvent(new Event('input'));
                 } else {
                     updateStatus(`خطا: ${result.message}`, 'error');
                 }
             } catch (error) {
-                updateStatus(`خطای شبکه در ارتباط با هوش مصنوعی: ${error}`, 'error');
+                updateStatus(`خطای ارتباط با پایتون: ${error}`, 'error');
             } finally {
                 setAiButtonLoading(false);
             }
@@ -108,51 +115,49 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
     });
 
-    // --- منطق دکمه انتشار نهایی (تغییر یافته) ---
+    // --- منطق دکمه انتشار نهایی با eel.js ---
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
         setSubmitButtonLoading(true);
         updateStatus('در حال آماده‌سازی و آپلود فایل...', 'info');
 
-        const formData = new FormData();
-        formData.append('ik_title', titleInput.value);
-        formData.append('ik_icon_name', englishNameInput.value);
-        formData.append('ik_description', descriptionInput.value);
-        formData.append('ik_category', categorySelect.value);
-        formData.append('ik_tags', tagsInput.value);
-        formData.append('ik_license', document.getElementById('ik_license').value);
-        formData.append('ik_svg_file', fileInput.files[0]);
+        const formData = {
+            'ik_title': titleInput.value,
+            'ik_icon_name': englishNameInput.value,
+            'ik_description': descriptionInput.value,
+            'ik_category': categorySelect.value,
+            'ik_tags': tagsInput.value,
+            'ik_license': document.getElementById('ik_license').value,
+            'color': document.getElementById('ik_can_change_color').checked,
+            'size': document.getElementById('ik_can_change_size').checked,
+            'weight': document.getElementById('ik_can_change_weight').checked
+        };
 
-        // ================== تغییر جدید در اینجا ==================
-        // ارسال وضعیت چک‌باکس‌ها به بک‌اند
-        formData.append('color', document.getElementById('ik_can_change_color').checked);
-        formData.append('size', document.getElementById('ik_can_change_size').checked);
-        formData.append('weight', document.getElementById('ik_can_change_weight').checked);
-        // ========================================================
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = async () => {
+            const base64Content = reader.result.split(',')[1];
+            const fileInfo = { 'name': file.name, 'content': base64Content };
 
-        try {
-            const response = await fetch('/api/upload_icon', {
-                method: 'POST',
-                body: formData
-            });
-            const result = await response.json();
-            updateStatus(result.message, result.status);
+            try {
+                const result = await eel.upload_icon(formData, fileInfo)();
+                updateStatus(result.message, result.status);
 
-            if (result.status === 'success') {
-                form.reset();
-                // بازگرداندن چک‌باکس‌ها به حالت پیش‌فرض
-                document.getElementById('ik_can_change_color').checked = true;
-                document.getElementById('ik_can_change_size').checked = true;
-                document.getElementById('ik_can_change_weight').checked = true;
-                document.querySelector('.file-text').textContent = 'یک فایل SVG را انتخاب کنید یا اینجا بکشید';
-                checkAiButtonState();
-                checkSubmitButtonState();
+                if (result.status === 'success') {
+                    form.reset();
+                    // بازگرداندن ظاهر کادر آپلود به حالت اولیه
+                    fileDummy.classList.remove('file-selected');
+                    fileText.textContent = originalFileText;
+                    checkAiButtonState();
+                    checkSubmitButtonState();
+                }
+            } catch (error) {
+                updateStatus(`خطای ارتباط با پایتون هنگام آپلود: ${error}`, 'error');
+            } finally {
+                setSubmitButtonLoading(false);
             }
-        } catch (error) {
-            updateStatus(`خطای شبکه هنگام آپلود: ${error}`, 'error');
-        } finally {
-            setSubmitButtonLoading(false);
-        }
+        };
     });
     
     // --- توابع کمکی (بدون تغییر) ---
