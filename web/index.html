@@ -5,11 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>آپلودر هوشمند آیکون کده</title>
     <link rel="stylesheet" href="style.css">
+    <!-- اسکریپت حیاتی Eel.js که در نسخه‌های قبلی حذف شده بود -->
+    <script type="text/javascript" src="/eel.js"></script>
     <link rel="manifest" href="manifest.json">
     <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js');
+            navigator.serviceWorker.register('/sw.js').then(registration => {
+                console.log('SW registered: ', registration);
+            }).catch(registrationError => {
+                console.log('SW registration failed: ', registrationError);
+            });
         });
     }
     </script>
@@ -19,13 +25,11 @@
         <div class="header">
             <h1>🚀 آپلودر هوشمند آیکون کده</h1>
         </div>
-        
         <form id="upload-form">
-            
             <div class="form-section">
                 <h2>۱. انتخاب فایل و نام انگلیسی</h2>
-                <div class="form-group file-area">
-                    <input type="file" id="ik_svg_file" name="ik_svg_file" class="required" accept=".svg">
+                 <div class="form-group file-area">
+                    <input type="file" id="ik_svg_file" class="required" accept=".svg">
                     <div class="file-dummy">
                         <span class="file-icon">📂</span>
                         <span class="file-text">یک فایل SVG را انتخاب کنید یا اینجا بکشید</span>
@@ -33,7 +37,7 @@
                 </div>
                 <div class="form-group">
                     <label for="ik_icon_name">نام انگلیسی (راهنمای هوش مصنوعی)</label>
-                    <input type="text" id="ik_icon_name" name="ik_icon_name" class="ltr required" placeholder="مثال: search, home, trash">
+                    <input type="text" id="ik_icon_name" class="ltr required" placeholder="مثال: search, home, trash">
                 </div>
             </div>
 
@@ -42,7 +46,7 @@
                     <span class="magic-icon">🪄</span>
                     <span class="ai-btn-text">تولید با هوش مصنوعی</span>
                 </button>
-                <div class="form-group ai-model-selector">
+                 <div class="form-group ai-model-selector">
                     <label for="ik_ai_model">مدل هوش مصنوعی</label>
                     <select id="ik_ai_model" name="ik_ai_model">
                         <option value="gemini-1.5-pro-latest">Gemini 1.5 Pro</option>
@@ -55,33 +59,34 @@
                 <h2>۲. تکمیل اطلاعات</h2>
                 <div class="form-group">
                     <label for="ik_title">عنوان کامل آیکون</label>
-                    <input type="text" id="ik_title" name="ik_title" class="required" placeholder="توسط هوش مصنوعی تولید می‌شود...">
+                    <input type="text" id="ik_title" class="required" placeholder="توسط هوش مصنوعی تولید می‌شود...">
                 </div>
                 <div class="form-group">
                     <label for="ik_description">توضیحات آیکون</label>
-                    <textarea id="ik_description" name="ik_description" class="required" rows="4" placeholder="توسط هوش مصنوعی تولید می‌شود..."></textarea>
+                    <textarea id="ik_description" class="required" rows="4" placeholder="توسط هوش مصنوعی تولید می‌شود..."></textarea>
                 </div>
                 <div class="form-group-row">
                     <div class="form-group">
                         <label for="ik_category">دسته‌بندی</label>
-                        <select id="ik_category" name="ik_category" class="required">
+                        <select id="ik_category" class="required">
                             <option value="">در حال بارگذاری...</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="ik_tags">برچسب‌ها (جدا با کاما)</label>
-                        <input type="text" id="ik_tags" name="ik_tags" placeholder="خانه, سایت, رابط کاربری">
+                        <input type="text" id="ik_tags" placeholder="خانه, سایت, رابط کاربری">
                     </div>
                 </div>
-                 <div class="form-group">
+                <div class="form-group">
                     <label for="ik_license">لایسنس</label>
-                    <select id="ik_license" name="ik_license">
+                    <select id="ik_license">
                         <option>Apache License 2.0</option>
                         <option>MIT License</option>
                     </select>
                 </div>
             </div>
 
+            <!-- =========== بخش جدید و اصلاح شده =========== -->
             <div class="form-section">
                 <h2>۳. قابلیت‌های آیکون</h2>
                 <div class="checkbox-container">
@@ -99,6 +104,7 @@
                     </div>
                 </div>
             </div>
+            <!-- ========================================== -->
             
             <div class="status-bar" id="status-bar">برای شروع، یک فایل SVG و نام انگلیسی آن را وارد کنید.</div>
 
