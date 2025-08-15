@@ -57,12 +57,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    // --- منطق دکمه هوش مصنوعی با fetch ---
+    // --- منطق دکمه هوش مصنوعی با fetch (بدون تغییر) ---
     aiBtn.addEventListener('click', async () => {
         const file = fileInput.files[0];
         if (!file) return;
 
-        // <<< مرحله ۱: خواندن مقدار مدل انتخاب شده از فیلد کشویی
         const selectedModel = document.getElementById('ik_ai_model').value;
 
         setAiButtonLoading(true);
@@ -78,7 +77,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const response = await fetch('/api/generate_ai_content', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    // <<< مرحله ۲: ارسال نام مدل به همراه سایر اطلاعات
                     body: JSON.stringify({
                         file_info: fileInfo,
                         english_name: englishNameInput.value.trim(),
@@ -110,7 +108,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
     });
 
-    // --- منطق دکمه انتشار نهایی (بدون تغییر) ---
+    // --- منطق دکمه انتشار نهایی (تغییر یافته) ---
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
         setSubmitButtonLoading(true);
@@ -125,6 +123,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         formData.append('ik_license', document.getElementById('ik_license').value);
         formData.append('ik_svg_file', fileInput.files[0]);
 
+        // ================== تغییر جدید در اینجا ==================
+        // ارسال وضعیت چک‌باکس‌ها به بک‌اند
+        formData.append('color', document.getElementById('ik_can_change_color').checked);
+        formData.append('size', document.getElementById('ik_can_change_size').checked);
+        formData.append('weight', document.getElementById('ik_can_change_weight').checked);
+        // ========================================================
+
         try {
             const response = await fetch('/api/upload_icon', {
                 method: 'POST',
@@ -135,6 +140,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (result.status === 'success') {
                 form.reset();
+                // بازگرداندن چک‌باکس‌ها به حالت پیش‌فرض
+                document.getElementById('ik_can_change_color').checked = true;
+                document.getElementById('ik_can_change_size').checked = true;
+                document.getElementById('ik_can_change_weight').checked = true;
                 document.querySelector('.file-text').textContent = 'یک فایل SVG را انتخاب کنید یا اینجا بکشید';
                 checkAiButtonState();
                 checkSubmitButtonState();
@@ -173,4 +182,3 @@ document.addEventListener('DOMContentLoaded', async () => {
     checkAiButtonState();
     checkSubmitButtonState();
 });
-
